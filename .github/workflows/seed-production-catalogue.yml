@@ -1,0 +1,158 @@
+﻿name: Seed Production Catalogue
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: octalve-vault-production-catalogue-seed
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    name: Seed initial production catalogue
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+    steps:
+      - name: Checkout verified source
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.7.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify source safety
+        run: pnpm verify:source
+
+      - name: Verify production database schema
+        run: pnpm exec prisma migrate status
+
+      - name: Refuse to overwrite an existing production catalogue
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { PrismaClient } from "@prisma/client";
+
+          const prisma = new PrismaClient();
+
+          try {
+            const count = await prisma.product.count();
+
+            if (count !== 0) {
+              throw new Error(
+                `Production catalogue already contains ${count} product(s). Refusing automatic seed.`
+              );
+            }
+
+            console.log("PASS: production catalogue is empty and safe for initial seed.");
+          } finally {
+            await prisma.$disconnect();
+          }
+          NODE
+
+      - name: Seed approved Vault catalogue
+        run: pnpm db:seed
+
+      - name: Verify seeded catalogue safety
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { PrismaClient } from "@prisma/client";
+
+          const prisma = new PrismaClient();
+
+          try {
+            const [
+              products,
+              comingSoon,
+              translations,
+              ngnPrices,
+              assets,
+              commerceSetting,
+            ] = await Promise.all([
+              prisma.product.count(),
+              prisma.product.count({
+                where: { status: "COMING_SOON" },
+              }),
+              prisma.productTranslation.count({
+                where: { locale: "en" },
+              }),
+              prisma.productPrice.count({
+                where: {
+                  currency: "NGN",
+                  isActive: true,
+                },
+              }),
+              prisma.productAsset.count(),
+              prisma.storeSetting.findUnique({
+                where: { key: "commerce" },
+              }),
+            ]);
+
+            const failures = [];
+
+            if (products !== 11) {
+              failures.push(`expected 11 products, found ${products}`);
+            }
+
+            if (comingSoon !== 11) {
+              failures.push(
+                `expected all 11 products to be COMING_SOON, found ${comingSoon}`
+              );
+            }
+
+            if (translations !== 11) {
+              failures.push(
+                `expected 11 English translations, found ${translations}`
+              );
+            }
+
+            if (ngnPrices !== 11) {
+              failures.push(
+                `expected 11 active NGN prices, found ${ngnPrices}`
+              );
+            }
+
+            if (assets !== 0) {
+              failures.push(
+                `expected zero commercial assets before R2 setup, found ${assets}`
+              );
+            }
+
+            if (!commerceSetting) {
+              failures.push("commerce StoreSetting was not created");
+            }
+
+            if (failures.length > 0) {
+              throw new Error(
+                `Production catalogue verification failed: ${failures.join("; ")}`
+              );
+            }
+
+            console.log("PASS: 11 approved products seeded.");
+            console.log("PASS: all 11 products remain COMING_SOON.");
+            console.log("PASS: 11 English translations exist.");
+            console.log("PASS: 11 active NGN prices exist.");
+            console.log("PASS: zero commercial ProductAsset records exist.");
+            console.log("PASS: production commerce settings exist.");
+          } finally {
+            await prisma.$disconnect();
+          }
+          NODE
