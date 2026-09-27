@@ -1,0 +1,11 @@
+"use client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+type Grant = { id: string; email: string; downloadCount: number; revokedAt: string | null; expiresAt: string | null; createdAt: string; orderItem: { productTitle: string; order: { reference: string; status: string } } };
+export function DownloadsTable({ grants }: { grants: Grant[] }) {
+  const router = useRouter(); const [busy, setBusy] = useState<string | null>(null);
+  async function revoke(id: string) { setBusy(id); try { const response = await fetch(`/api/admin/downloads/${id}/revoke`, { method: "POST" }); if (!response.ok) throw new Error("Unable to revoke grant."); router.refresh(); } finally { setBusy(null); } }
+  if (!grants.length) return <div className="rounded-[28px] border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">No download grants yet.</div>;
+  return <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white"><div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-[.1em] text-slate-400"><tr><th className="px-5 py-4">Product</th><th className="px-5 py-4">Customer</th><th className="px-5 py-4">Downloads</th><th className="px-5 py-4">State</th><th className="px-5 py-4" /></tr></thead><tbody className="divide-y divide-slate-100">{grants.map((grant) => <tr key={grant.id}><td className="px-5 py-5"><p className="font-black text-slate-950">{grant.orderItem.productTitle}</p><p className="mt-1 text-xs text-slate-400">{grant.orderItem.order.reference}</p></td><td className="px-5 py-5 text-slate-600">{grant.email}</td><td className="px-5 py-5 text-slate-600">{grant.downloadCount}</td><td className="px-5 py-5"><span className={`rounded-full px-3 py-1 text-xs font-black ${grant.revokedAt ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{grant.revokedAt ? "REVOKED" : "ACTIVE"}</span></td><td className="px-5 py-5 text-right">{!grant.revokedAt ? <button disabled={busy === grant.id} onClick={() => void revoke(grant.id)} className="text-sm font-black text-red-600 disabled:opacity-50">{busy === grant.id ? "Revoking…" : "Revoke"}</button> : null}</td></tr>)}</tbody></table></div></div>;
+}

@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --vault-ink: #000a16;
+  --vault-ink-deep: #020b1c;
+  --vault-black: #040506;
+  --vault-blue: #0064e0;
+  --vault-bright-blue: #0a84ff;
+  --vault-red: #e61525;
+  --vault-green: #29be3e;
+  --vault-orange: #fc7e24;
+  --vault-mist: #f8fafc;
+  --vault-pale-blue: #f1f6ff;
+  --vault-border: #e2e8f0;
+  --vault-surface: #f8fafc;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; background: #fff; }
+body { margin: 0; background: #fff; color: #0f172a; font-family: Arial, Helvetica, sans-serif; text-rendering: optimizeLegibility; }
+button, input, select, textarea { font: inherit; }
+a { color: inherit; text-decoration: none; }
+::selection { background: rgba(0,100,224,.18); }
+
+.vault-focus:focus-visible {
+  outline: 3px solid rgba(0,100,224,.28);
+  outline-offset: 3px;
+}

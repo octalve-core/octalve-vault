@@ -1,0 +1,606 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  COMING_SOON
+  ARCHIVED
+}
+
+enum AssetStatus {
+  UPLOADING
+  READY
+  PUBLISHED
+  RETIRED
+  FAILED
+}
+
+enum StorageProvider {
+  CLOUDFLARE_R2
+}
+
+enum PaymentProvider {
+  PAYSTACK
+  FLUTTERWAVE
+  STRIPE
+  PAYPAL
+  CRYPTO
+}
+
+enum PaymentStatus {
+  PENDING
+  INITIALIZED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING
+  INITIALIZED
+  PAID
+  FAILED
+  CANCELLED
+  FULFILLED
+  PARTIALLY_FULFILLED
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  PENDING
+  READY
+  EMAILED
+  DOWNLOADED
+  REVOKED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum CouponDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum CouponRedemptionStatus {
+  RESERVED
+  REDEEMED
+  RELEASED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  CATALOG_MANAGER
+  SUPPORT
+  AUDITOR
+}
+
+enum DownloadOutcome {
+  AUTHORIZED
+  STARTED
+  COMPLETED
+  DENIED
+  EXPIRED
+  REVOKED
+  ERROR
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum NotificationType {
+  PAYMENT_SUCCESS
+  VAULT_ACCESS_CODE
+  DOWNLOAD_READY
+  REFUND_CONFIRMATION
+  ADMIN_SECURITY_ALERT
+}
+
+enum SecuritySeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Product {
+  id            String              @id
+  slug          String              @unique
+  category      String
+  imagePath     String?
+  featured      Boolean             @default(false)
+  status        ProductStatus       @default(DRAFT)
+  defaultLocale String              @default("en")
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  translations   ProductTranslation[]
+  prices         ProductPrice[]
+  assets         ProductAsset[]
+  orderItems     OrderItem[]
+  couponProducts CouponProduct[]
+
+  @@index([status])
+  @@index([category])
+}
+
+model ProductTranslation {
+  id                   String   @id @default(cuid())
+  productId            String
+  locale               String
+  title                String
+  shortDescription     String
+  description          String?  @db.Text
+  businessBenefits     Json?
+  productivityBenefits Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
+  @@index([locale])
+}
+
+model ProductPrice {
+  id          String   @id @default(cuid())
+  productId   String
+  currency    String
+  amountMinor Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, currency])
+  @@index([currency, isActive])
+}
+
+model ProductAsset {
+  id               String          @id @default(cuid())
+  productId        String
+  version          Int
+  storageProvider  StorageProvider @default(CLOUDFLARE_R2)
+  objectKey        String          @unique
+  originalFilename String
+  downloadFilename String
+  contentType      String          @default("application/zip")
+  sizeBytes        BigInt
+  sha256           String?
+  etag             String?
+  status           AssetStatus     @default(UPLOADING)
+  createdByAdminId String?
+  publishedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdByAdmin AdminUser?      @relation("AssetCreatedBy", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  orderItems     OrderItem[]
+  downloadGrants DownloadGrant[]
+  downloadTickets DownloadTicket[]
+
+  @@unique([productId, version])
+  @@index([productId, status])
+}
+
+model Order {
+  id                     String          @id @default(cuid())
+  reference              String          @unique
+  email                   String
+  locale                  String          @default("en")
+  currency                String
+  subtotalAmount          Int
+  discountAmount          Int             @default(0)
+  taxAmount               Int             @default(0)
+  totalAmount             Int
+  status                  OrderStatus     @default(PENDING)
+  provider                PaymentProvider?
+  couponId                String?
+  couponCode              String?
+  affiliateId             String?
+  affiliateCode           String?
+  affiliateCommissionBps Int?
+  paidAt                  DateTime?
+  fulfilledAt             DateTime?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  items            OrderItem[]
+  payments         PaymentAttempt[]
+  webhookEvents    WebhookEvent[]
+  refunds          Refund[]
+  coupon           Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponRedemption CouponRedemption?
+  affiliate        Affiliate?        @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
+  @@index([couponId])
+  @@index([affiliateId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id             String         @id @default(cuid())
+  orderId        String
+  productId      String
+  productAssetId String?
+  productSlug    String
+  productTitle   String
+  unitAmount     Int
+  quantity       Int            @default(1)
+  totalAmount    Int
+  currency       String
+  deliveryStatus DeliveryStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productAsset  ProductAsset? @relation(fields: [productAssetId], references: [id], onDelete: SetNull)
+  downloadGrant DownloadGrant?
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([productAssetId])
+}
+
+model PaymentAttempt {
+  id                String          @id @default(cuid())
+  orderId           String
+  provider          PaymentProvider
+  providerReference String          @unique
+  providerTxId      String?
+  idempotencyKey    String          @unique
+  amount            Int
+  currency          String
+  status            PaymentStatus   @default(PENDING)
+  authorizationUrl  String?
+  accessCode        String?
+  rawInitialize     Json?
+  rawVerify         Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds Refund[]
+
+  @@index([orderId])
+  @@index([provider, status])
+}
+
+model WebhookEvent {
+  id             String          @id @default(cuid())
+  orderId        String?
+  provider       PaymentProvider
+  providerEventId String?
+  eventType      String?
+  signatureValid Boolean         @default(true)
+  payload        Json
+  processedAt    DateTime?
+  createdAt      DateTime        @default(now())
+
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerEventId])
+  @@index([provider])
+  @@index([processedAt])
+}
+
+model Refund {
+  id                String          @id @default(cuid())
+  orderId           String
+  paymentAttemptId  String?
+  provider          PaymentProvider?
+  providerReference String?         @unique
+  amount            Int
+  currency          String
+  status            RefundStatus    @default(PENDING)
+  reason            String?
+  rawResponse       Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentAttempt PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model Coupon {
+  id                 String             @id @default(cuid())
+  code               String             @unique
+  name               String
+  discountType       CouponDiscountType
+  percentageBps      Int?
+  fixedAmountMinor   Int?
+  currency           String?
+  minimumSubtotal    Int?
+  maxRedemptions     Int?
+  perEmailLimit      Int?
+  active             Boolean            @default(true)
+  startsAt           DateTime?
+  endsAt             DateTime?
+  createdByAdminId   String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  createdByAdmin AdminUser?         @relation("CouponCreatedBy", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  products       CouponProduct[]
+  redemptions    CouponRedemption[]
+  orders         Order[]
+
+  @@index([active, startsAt, endsAt])
+}
+
+model CouponProduct {
+  couponId  String
+  productId String
+
+  coupon  Coupon  @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([couponId, productId])
+  @@index([productId])
+}
+
+model CouponRedemption {
+  id                   String                 @id @default(cuid())
+  couponId             String
+  orderId              String                 @unique
+  email                String
+  status               CouponRedemptionStatus @default(RESERVED)
+  discountAmount       Int
+  currency             String
+  reservationExpiresAt DateTime
+  redeemedAt           DateTime?
+  releasedAt           DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([couponId, status, reservationExpiresAt])
+  @@index([couponId, email, status])
+}
+
+model Affiliate {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  displayName      String
+  email            String?
+  commissionBps    Int?
+  active           Boolean   @default(true)
+  createdByAdminId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  createdByAdmin AdminUser? @relation("AffiliateCreatedBy", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  orders         Order[]
+
+  @@index([active])
+}
+
+model DownloadGrant {
+  id             String    @id @default(cuid())
+  orderItemId    String    @unique
+  productAssetId String
+  email          String
+  downloadCount  Int       @default(0)
+  expiresAt      DateTime?
+  firstUsedAt    DateTime?
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  orderItem    OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  productAsset ProductAsset     @relation(fields: [productAssetId], references: [id], onDelete: Restrict)
+  tickets      DownloadTicket[]
+  events       DownloadEvent[]
+
+  @@index([email])
+  @@index([productAssetId])
+  @@index([expiresAt])
+}
+
+model DownloadTicket {
+  id                String    @id @default(cuid())
+  tokenHash         String    @unique
+  grantId           String
+  productAssetId    String
+  customerSessionId String
+  expiresAt         DateTime
+  lastUsedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  grant           DownloadGrant   @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  productAsset    ProductAsset    @relation(fields: [productAssetId], references: [id], onDelete: Restrict)
+  customerSession CustomerSession @relation(fields: [customerSessionId], references: [id], onDelete: Cascade)
+  events          DownloadEvent[]
+
+  @@index([grantId])
+  @@index([expiresAt])
+}
+
+model DownloadEvent {
+  id            String          @id @default(cuid())
+  grantId       String
+  ticketId      String?
+  outcome       DownloadOutcome
+  bytesServed   BigInt?
+  ipHash        String?
+  userAgentHash String?
+  createdAt     DateTime        @default(now())
+
+  grant  DownloadGrant  @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  ticket DownloadTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([grantId, createdAt])
+  @@index([outcome])
+}
+
+model CustomerAccessChallenge {
+  id          String    @id @default(cuid())
+  email       String
+  otpHash     String
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(6)
+  expiresAt   DateTime
+  lastSentAt  DateTime  @default(now())
+  usedAt      DateTime?
+  lockedAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+}
+
+model CustomerSession {
+  id            String    @id @default(cuid())
+  email         String
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  lastSeenAt    DateTime  @default(now())
+  ipHash        String?
+  userAgentHash String?
+  createdAt     DateTime  @default(now())
+
+  downloadTickets DownloadTicket[]
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  displayName  String
+  passwordHash String
+  role         AdminRole @default(AUDITOR)
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions      AdminSession[]
+  auditLogs     AdminAuditLog[]
+  securityEvents SecurityEvent[]
+  assetsCreated      ProductAsset[] @relation("AssetCreatedBy")
+  couponsCreated     Coupon[]       @relation("CouponCreatedBy")
+  affiliatesCreated  Affiliate[]    @relation("AffiliateCreatedBy")
+
+  @@index([role, active])
+}
+
+model AdminSession {
+  id            String    @id @default(cuid())
+  userId        String
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  lastSeenAt    DateTime  @default(now())
+  ipHash        String?
+  userAgentHash String?
+  createdAt     DateTime  @default(now())
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  actorAdminId String?
+  action       String
+  entityType   String
+  entityId     String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  actor AdminUser? @relation(fields: [actorAdminId], references: [id], onDelete: SetNull)
+
+  @@index([actorAdminId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model SecurityEvent {
+  id            String           @id @default(cuid())
+  type          String
+  severity      SecuritySeverity @default(INFO)
+  actorAdminId  String?
+  emailHash     String?
+  ipHash        String?
+  userAgentHash String?
+  metadata      Json?
+  createdAt     DateTime         @default(now())
+
+  actor AdminUser? @relation(fields: [actorAdminId], references: [id], onDelete: SetNull)
+
+  @@index([type, createdAt])
+  @@index([severity])
+}
+
+model NotificationJob {
+  id             String             @id @default(cuid())
+  type           NotificationType
+  dedupeKey      String             @unique
+  recipientEmail String
+  payload        Json
+  status         NotificationStatus @default(PENDING)
+  attempts       Int                @default(0)
+  lastError      String?
+  nextAttemptAt  DateTime?
+  sentAt         DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([status, nextAttemptAt])
+}
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  keyHash     String
+  action      String
+  windowStart DateTime
+  count       Int      @default(1)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([keyHash, action, windowStart])
+  @@index([expiresAt])
+}
+
+model StoreSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}

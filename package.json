@@ -1,0 +1,51 @@
+{
+  "name": "octalve-vault",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "postinstall": "prisma generate",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "check": "pnpm test && pnpm typecheck && pnpm lint",
+    "test": "node --experimental-strip-types --test",
+    "test:domain": "node --experimental-strip-types --test tests/domain/*.test.ts",
+    "verify:source": "node scripts/verify-source.mjs",
+    "db:seed": "node prisma/seed.mjs",
+    "db:deploy": "prisma migrate deploy",
+    "admin:bootstrap": "node scripts/bootstrap-admin.mjs",
+    "db:migration:init": "node -e \"console.error('Use scripts/create-initial-migration.ps1 on Windows or scripts/create-initial-migration.sh on Unix.'); process.exit(1)\"",
+    "verify": "node -e \"console.log('Use scripts/verify.ps1 on Windows or scripts/verify.sh on Unix.')\""
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "lucide-react": "^0.577.0",
+    "next": "16.3.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.3.6",
+    "prettier": "^3.9.5",
+    "prisma": "6.19.3",
+    "tailwindcss": "4.3.3",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@12.7.0",
+  "description": "Standalone Octalve Vault digital commerce and secure delivery platform",
+  "engines": {
+    "node": ">=22.18.0 <25"
+  },
+  "type": "module"
+}

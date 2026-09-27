@@ -1,0 +1,19 @@
+name = "octalve-vault-download"
+main = "src/index.ts"
+compatibility_date = "2026-09-26"
+
+[[r2_buckets]]
+binding = "VAULT_ASSETS"
+bucket_name = "octalve-vault-assets"
+
+[vars]
+ORIGIN_API_URL = "https://vault.octalve.com"
+
+# Set this secret with Wrangler; never commit its value:
+#   wrangler secret put OCTALVE_INTERNAL_REDEEM_SECRET
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Set this second secret for scheduled notification retries:
+#   wrangler secret put OCTALVE_INTERNAL_CRON_SECRET
