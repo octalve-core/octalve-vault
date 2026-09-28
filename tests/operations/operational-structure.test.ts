@@ -41,3 +41,38 @@ test("refund policy revokes access only after provider-confirmed full refund", (
   assert.match(source, /عند تأكيد مزود الدفع لاسترداد كامل/);
   assert.equal(source.includes("When a full refund is initiated for an order"), false);
 });
+test("checkout binds idempotency and new payment attempts to the provider environment", () => {
+  const source = readFileSync("src/server/payments/checkout-service.ts", "utf8");
+
+  assert.match(
+    source,
+    /const\s+environment\s*=\s*adapter\.configuredEnvironment\(\)/,
+  );
+
+  assert.match(
+    source,
+    /existing\.environment\s*!==\s*environment/,
+  );
+
+  assert.match(
+    source,
+    /createOrderAndReservation\(\{[\s\S]*provider:\s*input\.provider,[\s\S]*environment,/,
+  );
+
+  assert.match(
+    source,
+    /async function createOrderAndReservation\(input:\s*\{[\s\S]*environment:\s*PaymentEnvironment/,
+  );
+
+  assert.match(
+    source,
+    /payments:\s*\{[\s\S]*create:\s*\{[\s\S]*environment:\s*input\.environment,/,
+  );
+
+  const publicInput = source.match(
+    /export async function initializeCheckoutPayment\(input:\s*\{([\s\S]*?)\}\)\s*\{/,
+  );
+
+  assert.ok(publicInput);
+  assert.doesNotMatch(publicInput[1] ?? "", /\benvironment\s*:/);
+});

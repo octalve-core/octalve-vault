@@ -1,4 +1,4 @@
-import type { CurrencyCode, Locale, PaymentProviderId } from "../../domain/constants";
+import type { CurrencyCode, Locale, PaymentEnvironment, PaymentProviderId } from "../../domain/constants";
 import { normalizeEmail } from "../../domain/email";
 import { requiredEnv } from "../../config/env.server";
 import { prisma } from "../../lib/prisma";
@@ -80,6 +80,8 @@ export async function initializeCheckoutPayment(input: {
   }
 
   const adapter = getPaymentProvider(input.provider);
+  const environment = adapter.configuredEnvironment();
+
   const existing = await prisma.paymentAttempt.findUnique({
     where: { idempotencyKey: input.idempotencyKey },
     include: { order: { include: { items: { select: { productId: true } } } } },
@@ -88,6 +90,7 @@ export async function initializeCheckoutPayment(input: {
   if (existing) {
     if (
       existing.provider !== input.provider ||
+      existing.environment !== environment ||
       existing.order.email !== email ||
       existing.order.currency !== input.currency ||
       existing.order.locale !== input.locale ||
@@ -123,6 +126,7 @@ export async function initializeCheckoutPayment(input: {
         locale: input.locale,
         currency: input.currency,
         provider: input.provider,
+        environment,
         items,
         couponCode,
         affiliateCode,
@@ -197,6 +201,7 @@ async function createOrderAndReservation(input: {
   locale: Locale;
   currency: CurrencyCode;
   provider: PaymentProviderId;
+  environment: PaymentEnvironment;
   items: CheckoutItemInput[];
   couponCode: string | null;
   affiliateCode: string | null;
@@ -235,6 +240,7 @@ async function createOrderAndReservation(input: {
           payments: {
             create: {
               provider: input.provider,
+              environment: input.environment,
               providerReference: reference,
               idempotencyKey: input.idempotencyKey,
               amount: pricing.totalAmount,
