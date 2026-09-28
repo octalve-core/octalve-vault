@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { requiredEnv } from "@/config/env.server";
 import { isCurrency } from "@/config/currencies";
 import { PAYMENT_PROVIDER_CAPABILITIES } from "@/config/payments";
-import type { CurrencyCode } from "@/domain/constants";
+import type { CurrencyCode, PaymentEnvironment } from "@/domain/constants";
 import { decimalMajorToMinor, minorToMajorString } from "@/domain/money";
 import { asRecord, asString } from "@/server/payments/json";
 import type {
@@ -16,6 +16,7 @@ import type {
 } from "@/server/payments/types";
 import { mapFlutterwaveRefundStatus } from "../../refund-status";
 import { verifyFlutterwaveWebhookSignature } from "./signature";
+import { validateFlutterwaveEnvironment } from "./environment";
 
 function payloadHash(input: PaymentInitializeInput, secret: string): string {
   const amount = minorToMajorString(input.amountMinor);
@@ -25,17 +26,25 @@ function payloadHash(input: PaymentInitializeInput, secret: string): string {
     .digest("hex");
 }
 
-
+function flutterwaveConfig(): { secret: string; environment: PaymentEnvironment } {
+  const secret = requiredEnv("FLUTTERWAVE_SECRET_KEY");
+  const environment = validateFlutterwaveEnvironment(requiredEnv("FLUTTERWAVE_ENVIRONMENT"), secret);
+  return { secret, environment };
+}
 
 export class FlutterwaveAdapter implements PaymentProviderAdapter {
   readonly id = "FLUTTERWAVE" as const;
+
+  configuredEnvironment(): PaymentEnvironment {
+    return flutterwaveConfig().environment;
+  }
 
   supportsCurrency(currency: CurrencyCode): boolean {
     return PAYMENT_PROVIDER_CAPABILITIES.FLUTTERWAVE.includes(currency);
   }
 
   async initialize(input: PaymentInitializeInput): Promise<PaymentInitializeResult> {
-    const secret = requiredEnv("FLUTTERWAVE_SECRET_KEY");
+    const { secret } = flutterwaveConfig();
     const amount = minorToMajorString(input.amountMinor);
     const response = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
@@ -69,10 +78,11 @@ export class FlutterwaveAdapter implements PaymentProviderAdapter {
   }
 
   async verify(reference: string): Promise<PaymentVerification> {
+    const { secret, environment } = flutterwaveConfig();
     const response = await fetch(
       `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`,
       {
-        headers: { Authorization: `Bearer ${requiredEnv("FLUTTERWAVE_SECRET_KEY")}` },
+        headers: { Authorization: `Bearer ${secret}` },
         cache: "no-store",
       },
     );
@@ -101,18 +111,20 @@ export class FlutterwaveAdapter implements PaymentProviderAdapter {
       currency,
       email: asString(customer?.email),
       paidAt: asString(data?.created_at) ? new Date(String(data?.created_at)) : null,
+      environment,
       raw,
     };
   }
 
   async refund(input: PaymentRefundInput): Promise<PaymentRefundResult> {
+    const { secret, environment } = flutterwaveConfig();
     if (!input.providerTxId || !/^\d+$/.test(input.providerTxId)) {
       throw new Error("Flutterwave refund requires the verified provider transaction ID.");
     }
     const response = await fetch(`https://api.flutterwave.com/v3/transactions/${encodeURIComponent(input.providerTxId)}/refund`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${requiredEnv("FLUTTERWAVE_SECRET_KEY")}`,
+        Authorization: `Bearer ${secret}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -128,12 +140,13 @@ export class FlutterwaveAdapter implements PaymentProviderAdapter {
     if (!response.ok || root?.status !== "success" || !providerReference) {
       throw new Error(asString(root?.message) || "Flutterwave refund initiation failed.");
     }
-    return { providerReference, status: mapFlutterwaveRefundStatus(asString(data?.status)), raw };
+    return { providerReference, environment, status: mapFlutterwaveRefundStatus(asString(data?.status)), raw };
   }
 
   async fetchRefund(providerReference: string): Promise<PaymentRefundResult> {
+    const { secret, environment } = flutterwaveConfig();
     const response = await fetch(`https://api.flutterwave.com/v3/refunds?flw_ref=${encodeURIComponent(providerReference)}`, {
-      headers: { Authorization: `Bearer ${requiredEnv("FLUTTERWAVE_SECRET_KEY")}` },
+      headers: { Authorization: `Bearer ${secret}` },
       cache: "no-store",
     });
     const raw: unknown = await response.json();
@@ -145,6 +158,7 @@ export class FlutterwaveAdapter implements PaymentProviderAdapter {
     }
     return {
       providerReference: asString(data.flw_ref) ?? providerReference,
+      environment,
       status: mapFlutterwaveRefundStatus(asString(data.status)),
       raw,
     };

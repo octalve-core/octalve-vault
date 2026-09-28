@@ -80,3 +80,34 @@ test("Paystack configured environment must agree with secret-key mode without le
     }
   }
 });
+
+test("Flutterwave adapter has an explicit server-only payment environment boundary", () => {
+  assert.equal(existsSync("src/server/payments/providers/flutterwave/environment.ts"), true);
+  const adapter = readFileSync("src/server/payments/providers/flutterwave/adapter.ts", "utf8");
+  assert.match(adapter, /configuredEnvironment\(\)/);
+  assert.match(adapter, /FLUTTERWAVE_ENVIRONMENT/);
+  const envExample = readFileSync(".env.example", "utf8");
+  assert.match(envExample, /^FLUTTERWAVE_ENVIRONMENT=TEST$/m);
+});
+
+import { validateFlutterwaveEnvironment } from "../../src/server/payments/providers/flutterwave/environment.ts";
+
+test("Flutterwave configured environment validates test-key distinction without leaking secrets", () => {
+  assert.equal(validateFlutterwaveEnvironment("TEST", "FLWSECK_TEST-example"), "TEST");
+  assert.equal(validateFlutterwaveEnvironment("LIVE", "FLWSECK-live-example"), "LIVE");
+
+  for (const [environment, secret] of [
+    ["LIVE", "FLWSECK_TEST-sensitive"],
+    ["TEST", "FLWSECK-live-sensitive"],
+    ["TEST", "unexpected_sensitive"],
+  ] as const) {
+    try {
+      validateFlutterwaveEnvironment(environment, secret);
+      assert.fail("expected environment validation to fail");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      assert.match(message, /environment|configuration|secret/i);
+      assert.equal(message.includes(secret), false);
+    }
+  }
+});
