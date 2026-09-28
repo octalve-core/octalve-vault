@@ -17,3 +17,6 @@ required = [
 
 [triggers]
 crons = ["*/5 * * * *"]
+[[routes]]
+pattern = "downloads.octalve.com"
+custom_domain = true
