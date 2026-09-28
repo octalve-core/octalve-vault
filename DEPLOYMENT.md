@@ -145,7 +145,8 @@ Confirm the production Octalve merchant account is permitted for every currency 
 
 - `PAYMENT_PROVIDER_PAYSTACK_ENABLED=true`
 - `PAYSTACK_ENABLED_CURRENCIES=NGN` (add USD only after Paystack confirms it for your account)
-- `PAYSTACK_SECRET_KEY=<live server secret>`
+- `PAYSTACK_ENVIRONMENT=TEST` while completing the provider test/refund smoke test
+- `PAYSTACK_SECRET_KEY=<matching server secret>`
 
 Webhook URL:
 
@@ -161,8 +162,9 @@ Confirm the production account/country supports the currencies/payment methods y
 
 - `PAYMENT_PROVIDER_FLUTTERWAVE_ENABLED=true`
 - `FLUTTERWAVE_ENABLED_CURRENCIES=<only currencies approved for your account>`
-- `FLUTTERWAVE_SECRET_KEY=<live server secret>`
-- `FLUTTERWAVE_WEBHOOK_SECRET=<production webhook secret>`
+- `FLUTTERWAVE_ENVIRONMENT=TEST` until a separate Flutterwave test integration is proven
+- `FLUTTERWAVE_SECRET_KEY=<matching server secret>`
+- `FLUTTERWAVE_WEBHOOK_SECRET=<environment-appropriate webhook secret>`
 
 Webhook URL:
 
@@ -171,6 +173,20 @@ https://vault.octalve.com/api/webhooks/flutterwave
 ```
 
 The code supports NGN/USD/GBP/EUR as commerce currencies, but a product must have an explicit active price and the selected provider/account must actually support the currency. Never invent missing currency prices.
+### Payment-environment rollout rule
+
+Deploy the payment-environment migration **before** any provider is switched to `LIVE`. Existing pre-live `PaymentAttempt`, `WebhookEvent`, and `Refund` rows are intentionally retained and backfilled as `TEST`; the migration must not be run after real-money LIVE records have already been introduced without a separate reviewed migration plan.
+
+A provider's secret and environment setting are one configuration unit. Change them together in the same controlled Vercel configuration window, then redeploy:
+
+```text
+PAYSTACK_SECRET_KEY=sk_live_...
+PAYSTACK_ENVIRONMENT=LIVE
+```
+
+Never switch only the secret or only the environment. Vault fails closed when the stored attempt environment, validated configured environment, and normalized provider verification/refund environment do not agree. Detailed Admin history retains TEST records, but LIVE business KPIs exclude them.
+
+Do not activate Flutterwave LIVE merely because the adapter exists. Prove Flutterwave TEST checkout, verification, webhook, refund and revocation separately before changing its secret/environment pair to LIVE. Future Stripe, PayPal and Crypto adapters follow the same staged rule.
 
 ## 8. Vercel project
 

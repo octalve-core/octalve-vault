@@ -51,8 +51,21 @@ test("payment environment rollout and future-provider contract are documented", 
   assert.match(environment, /PAYSTACK_ENVIRONMENT/);
   assert.match(environment, /FLUTTERWAVE_ENVIRONMENT/);
   assert.match(environment, /server-only/i);
-  assert.match(deployment, /secret[\s\S]*environment|environment[\s\S]*secret/i);
-  assert.match(deployment, /migration[\s\S]*before[\s\S]*LIVE/i);
+  assert.match(deployment, /PAYSTACK_ENVIRONMENT=TEST/);
+  assert.match(deployment, /FLUTTERWAVE_ENVIRONMENT=TEST/);
+  assert.match(deployment, /Payment-environment rollout rule/);
+  assert.match(
+    deployment,
+    /PAYSTACK_SECRET_KEY=sk_live_\.\.\.[\s\S]*PAYSTACK_ENVIRONMENT=LIVE/,
+  );
+  assert.match(
+    deployment,
+    /migration[\s\S]*before[\s\S]*provider[\s\S]*LIVE/i,
+  );
+  assert.match(
+    deployment,
+    /secret and environment setting are one configuration unit/i,
+  );
   assert.match(security, /stored[\s\S]*configured[\s\S]*verified[\s\S]*environment/i);
   assert.match(release, /TEST[\s\S]*retained[\s\S]*LIVE[\s\S]*KPI/i);
   assert.match(architecture, /Stripe[\s\S]*PayPal[\s\S]*Crypto/i);
