@@ -59,3 +59,37 @@ test("sessions are revocable and expiring", () => {
   assert.match(schema, /model\s+AdminSession[\s\S]*expiresAt\s+DateTime[\s\S]*revokedAt\s+DateTime\?/);
   assert.match(schema, /model\s+CustomerSession[\s\S]*expiresAt\s+DateTime[\s\S]*revokedAt\s+DateTime\?/);
 });
+
+test("payment environment is explicit and provider-neutral across financial records", () => {
+  assert.match(schema, /enum\s+PaymentEnvironment\s+\{\s*TEST\s+LIVE\s*\}/s);
+
+  for (const model of ["PaymentAttempt", "WebhookEvent", "Refund"]) {
+    const match = schema.match(new RegExp(`model\\s+${model}\\s+\\{([\\s\\S]*?)\\n\\}`));
+    assert.ok(match, `missing model ${model}`);
+    const body = match[1] ?? "";
+    assert.match(body, /\benvironment\s+PaymentEnvironment\b/);
+    assert.doesNotMatch(body, /\benvironment\s+PaymentEnvironment[^\n]*@default/);
+  }
+});
+
+test("payment environment participates in financial indexes and uniqueness namespaces", () => {
+  assert.match(schema, /model\s+PaymentAttempt[\s\S]*@@index\(\[provider, environment, status\]\)/);
+  assert.doesNotMatch(schema, /model\s+PaymentAttempt[\s\S]*@@index\(\[provider, status\]\)/);
+
+  assert.match(schema, /model\s+WebhookEvent[\s\S]*@@unique\(\[provider, environment, providerEventId\]\)/);
+  assert.doesNotMatch(schema, /model\s+WebhookEvent[\s\S]*@@unique\(\[provider, providerEventId\]\)/);
+
+  assert.doesNotMatch(schema, /model\s+Refund[\s\S]*providerReference\s+String\?\s+@unique/);
+  assert.match(schema, /model\s+Refund[\s\S]*@@unique\(\[provider, environment, providerReference\]\)/);
+});
+
+test("Prisma reserves future providers while runtime exposes only implemented adapters", () => {
+  const constants = readFileSync(new URL("../../src/domain/constants.ts", import.meta.url), "utf8");
+  for (const provider of ["PAYSTACK", "FLUTTERWAVE", "STRIPE", "PAYPAL", "CRYPTO"]) {
+    assert.match(schema, new RegExp(`\\b${provider}\\b`));
+  }
+  assert.match(constants, /PAYMENT_PROVIDERS\s*=\s*\["PAYSTACK",\s*"FLUTTERWAVE"\]/);
+  assert.doesNotMatch(constants, /PAYMENT_PROVIDERS[^\n]*STRIPE/);
+  assert.doesNotMatch(constants, /PAYMENT_PROVIDERS[^\n]*PAYPAL/);
+  assert.doesNotMatch(constants, /PAYMENT_PROVIDERS[^\n]*CRYPTO/);
+});

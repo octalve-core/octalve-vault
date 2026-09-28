@@ -7,6 +7,9 @@ export type CurrencyCode = (typeof CURRENCIES)[number];
 export const PAYMENT_PROVIDERS = ["PAYSTACK", "FLUTTERWAVE"] as const;
 export type PaymentProviderId = (typeof PAYMENT_PROVIDERS)[number];
 
+export const PAYMENT_ENVIRONMENTS = ["TEST", "LIVE"] as const;
+export type PaymentEnvironment = (typeof PAYMENT_ENVIRONMENTS)[number];
+
 export const ADMIN_ROLES = [
   "SUPER_ADMIN",
   "ADMIN",
