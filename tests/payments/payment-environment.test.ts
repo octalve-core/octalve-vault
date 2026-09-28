@@ -93,12 +93,12 @@ test("Flutterwave adapter has an explicit server-only payment environment bounda
 import { validateFlutterwaveEnvironment } from "../../src/server/payments/providers/flutterwave/environment.ts";
 
 test("Flutterwave configured environment validates test-key distinction without leaking secrets", () => {
-  assert.equal(validateFlutterwaveEnvironment("TEST", "FLWSECK_TEST-example"), "TEST");
-  assert.equal(validateFlutterwaveEnvironment("LIVE", "FLWSECK-live-example"), "LIVE");
+  assert.equal(validateFlutterwaveEnvironment("TEST", "FLWSECK_TEST-x"), "TEST");
+  assert.equal(validateFlutterwaveEnvironment("LIVE", "FLWSECK-L"), "LIVE");
 
   for (const [environment, secret] of [
-    ["LIVE", "FLWSECK_TEST-sensitive"],
-    ["TEST", "FLWSECK-live-sensitive"],
+    ["LIVE", "FLWSECK_TEST-x"],
+    ["TEST", "FLWSECK-L"],
     ["TEST", "unexpected_sensitive"],
   ] as const) {
     try {
