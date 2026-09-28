@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { notificationDue, notificationDedupeKey } from "../../src/server/notifications/outbox-core.ts";
 import { assertRefundAmount, refundOrderDisposition } from "../../src/server/refunds/refund-core.ts";
 import { healthPayload } from "../../src/server/health/health-core.ts";
+import { assertStoredEnvironmentMatchesConfigured } from "../../src/server/payments/environment.ts";
 
 test("notification outbox dedupe keys are stable and due rules fail closed", () => {
   assert.equal(notificationDedupeKey("DOWNLOAD_READY", "order_123"), "download-ready:order_123");
@@ -32,4 +33,17 @@ test("health payload exposes service state without infrastructure or secret deta
   assert.deepEqual(payload, { status: "ok", service: "octalve-vault", timestamp: "2026-09-26T20:00:00.000Z" });
   const serialized = JSON.stringify(payload).toLowerCase();
   for (const forbidden of ["database_url", "secret", "r2_", "paystack", "flutterwave"]) assert.equal(serialized.includes(forbidden), false);
+});
+
+test("refund provider and result environments must stay in the stored payment namespace", () => {
+  assert.doesNotThrow(() => assertStoredEnvironmentMatchesConfigured("TEST", "TEST"));
+  assert.doesNotThrow(() => assertStoredEnvironmentMatchesConfigured("LIVE", "LIVE"));
+  assert.throws(
+    () => assertStoredEnvironmentMatchesConfigured("TEST", "LIVE"),
+    /environment mismatch/i,
+  );
+  assert.throws(
+    () => assertStoredEnvironmentMatchesConfigured("LIVE", "TEST"),
+    /environment mismatch/i,
+  );
 });

@@ -150,41 +150,62 @@ test("settlement enforces payment environment before idempotency or value mutati
   );
 });
 
-test("settlement enforces payment environment before idempotency or value mutation", () => {
-  const source = readFileSync("src/server/vault/settlement-service.ts", "utf8");
 
-  assert.match(
-    source,
-    /const\s+providerId\s*=\s*attempt\.provider\s+as\s+PaymentProviderId/,
-  );
+test("refund initiation and refresh enforce environment before provider and local success", () => {
+  const source = readFileSync("src/server/refunds/refund-service.ts", "utf8");
 
-  assert.match(source, /getPaymentProvider\(providerId\)/);
-  assert.match(source, /adapter\.configuredEnvironment\(\)/);
-  assert.match(source, /assertSettlementEnvironmentAgreement\(/);
+  assert.match(source, /attempt\.environment/);
+  assert.match(source, /configuredEnvironment\(\)/);
+  assert.match(source, /environment:\s*attempt\.environment/);
+  assert.match(source, /refund\.environment/);
+  assert.match(source, /result\.environment/);
+  assert.match(source, /assertStoredEnvironmentMatchesConfigured\(/);
 
-  const guard = source.indexOf("assertSettlementEnvironmentAgreement(");
-  const verification = source.indexOf("assertVerificationMatchesAttempt(");
-  const disposition = source.indexOf("settlementDisposition(");
-  const paymentMutation = source.indexOf("tx.paymentAttempt.update(");
-  const grantMutation = source.indexOf("tx.downloadGrant.upsert(");
+  const createRefund = source.indexOf("tx.refund.create(");
 
-  assert.ok(
-    guard >= 0 && guard < verification,
-    "environment guard must precede payment-field verification",
-  );
+  const configuredGuard =
+    source.match(
+      /assertStoredEnvironmentMatchesConfigured\(\s*attempt\.environment,\s*configuredEnvironment,\s*\)/,
+    )?.index ?? -1;
 
   assert.ok(
-    guard < disposition,
-    "environment guard must precede idempotent settlement disposition",
+    configuredGuard >= 0 && configuredGuard < createRefund,
+    "refund environment guard must precede refund reservation",
+  );
+
+  const applyStart = source.indexOf("async function applyRefundResult");
+
+  const resultGuard =
+    source.match(
+      /assertStoredEnvironmentMatchesConfigured\(\s*refund\.environment,\s*result\.environment,\s*\)/,
+    )?.index ?? -1;
+
+  const resultUpdate = source.indexOf(
+    "tx.refund.update(",
+    applyStart,
   );
 
   assert.ok(
-    guard < paymentMutation,
-    "environment guard must precede payment mutation",
+    resultGuard >= applyStart && resultGuard < resultUpdate,
+    "provider result environment must be checked before local refund update",
+  );
+
+  const refreshStart = source.indexOf(
+    "export async function refreshRefund",
+  );
+
+  const refreshGuard =
+    source.match(
+      /assertStoredEnvironmentMatchesConfigured\(\s*refund\.environment,\s*configuredEnvironment,\s*\)/,
+    )?.index ?? -1;
+
+  const fetchRefund = source.indexOf(
+    "adapter.fetchRefund(refund.providerReference)",
+    refreshStart,
   );
 
   assert.ok(
-    guard < grantMutation,
-    "environment guard must precede grant mutation",
+    refreshGuard >= refreshStart && refreshGuard < fetchRefund,
+    "refresh environment guard must precede provider fetch",
   );
 });

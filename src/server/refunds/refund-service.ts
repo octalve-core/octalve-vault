@@ -1,5 +1,6 @@
 import { PAYMENT_PROVIDERS, type PaymentProviderId } from "../../domain/constants";
 import { prisma } from "../../lib/prisma";
+import { assertStoredEnvironmentMatchesConfigured } from "../payments/environment";
 import { getPaymentProvider } from "../payments/registry";
 import type { PaymentRefundResult } from "../payments/types";
 import { notificationDedupeKey } from "../notifications/outbox-core.ts";
@@ -14,28 +15,58 @@ function isImplementedPaymentProvider(value: string): value is PaymentProviderId
 
 async function applyRefundResult(refundId: string, result: PaymentRefundResult) {
   return prisma.$transaction(async (tx) => {
-    const refund = await tx.refund.update({
+    const refund = await tx.refund.findUnique({
       where: { id: refundId },
+      include: { order: true, paymentAttempt: true },
+    });
+
+    if (!refund) throw new Error("Refund not found.");
+
+    assertStoredEnvironmentMatchesConfigured(
+      refund.environment,
+      result.environment,
+    );
+
+    if (refund.paymentAttempt) {
+      assertStoredEnvironmentMatchesConfigured(
+        refund.paymentAttempt.environment,
+        refund.environment,
+      );
+    }
+
+    const updatedRefund = await tx.refund.update({
+      where: { id: refund.id },
       data: {
         providerReference: result.providerReference,
         status: result.status,
         rawResponse: result.raw as object,
       },
-      include: { order: true, paymentAttempt: true },
     });
 
-    if (result.status !== "SUCCEEDED") return refund;
+    if (result.status !== "SUCCEEDED") return updatedRefund;
 
     const succeeded = await tx.refund.aggregate({
       where: { orderId: refund.orderId, status: "SUCCEEDED" },
       _sum: { amount: true },
     });
-    const cumulative = succeeded._sum.amount ?? 0;
-    const disposition = refundOrderDisposition(refund.order.totalAmount, cumulative);
-    const orderStatus = disposition === "FULL" ? "REFUNDED" : "PARTIALLY_REFUNDED";
-    const paymentStatus = disposition === "FULL" ? "REFUNDED" : "PARTIALLY_REFUNDED";
 
-    await tx.order.update({ where: { id: refund.orderId }, data: { status: orderStatus } });
+    const cumulative = succeeded._sum.amount ?? 0;
+    const disposition = refundOrderDisposition(
+      refund.order.totalAmount,
+      cumulative,
+    );
+
+    const orderStatus =
+      disposition === "FULL" ? "REFUNDED" : "PARTIALLY_REFUNDED";
+
+    const paymentStatus =
+      disposition === "FULL" ? "REFUNDED" : "PARTIALLY_REFUNDED";
+
+    await tx.order.update({
+      where: { id: refund.orderId },
+      data: { status: orderStatus },
+    });
+
     if (refund.paymentAttemptId) {
       await tx.paymentAttempt.update({
         where: { id: refund.paymentAttemptId },
@@ -48,6 +79,7 @@ async function applyRefundResult(refundId: string, result: PaymentRefundResult) 
         where: { orderItem: { orderId: refund.orderId } },
         data: { revokedAt: new Date() },
       });
+
       await tx.orderItem.updateMany({
         where: { orderId: refund.orderId },
         data: { deliveryStatus: "REVOKED" },
@@ -55,11 +87,16 @@ async function applyRefundResult(refundId: string, result: PaymentRefundResult) 
     }
 
     await tx.notificationJob.upsert({
-      where: { dedupeKey: notificationDedupeKey("REFUND_CONFIRMATION", refund.id) },
+      where: {
+        dedupeKey: notificationDedupeKey("REFUND_CONFIRMATION", refund.id),
+      },
       update: {},
       create: {
         type: "REFUND_CONFIRMATION",
-        dedupeKey: notificationDedupeKey("REFUND_CONFIRMATION", refund.id),
+        dedupeKey: notificationDedupeKey(
+          "REFUND_CONFIRMATION",
+          refund.id,
+        ),
         recipientEmail: refund.order.email,
         payload: {
           orderId: refund.orderId,
@@ -71,10 +108,9 @@ async function applyRefundResult(refundId: string, result: PaymentRefundResult) 
       },
     });
 
-    return refund;
+    return updatedRefund;
   });
 }
-
 export async function initiateRefund(input: {
   orderId: string;
   amountMinor: number;
@@ -108,6 +144,15 @@ export async function initiateRefund(input: {
       throw new Error(`Refunds are not implemented for payment provider ${attempt.provider}.`);
     }
 
+    const providerId = attempt.provider as PaymentProviderId;
+    const adapter = getPaymentProvider(providerId);
+    const configuredEnvironment = adapter.configuredEnvironment();
+
+    assertStoredEnvironmentMatchesConfigured(
+      attempt.environment,
+      configuredEnvironment,
+    );
+
     const reserved = order.refunds
       .filter((item) =>
         (RESERVED_REFUND_STATUSES as readonly string[]).includes(item.status),
@@ -126,6 +171,7 @@ export async function initiateRefund(input: {
         orderId: order.id,
         paymentAttemptId: attempt.id,
         provider: attempt.provider,
+        environment: attempt.environment,
         amount,
         currency: order.currency,
         status: "PENDING",
@@ -136,13 +182,19 @@ export async function initiateRefund(input: {
     return {
       refund,
       attempt,
-      provider: attempt.provider,
+      providerId,
       currency: order.currency as "NGN" | "USD" | "GBP" | "EUR",
     };
   }, { isolationLevel: "Serializable" });
 
   try {
-    const adapter = getPaymentProvider(reservation.provider);
+    const adapter = getPaymentProvider(reservation.providerId);
+
+    assertStoredEnvironmentMatchesConfigured(
+      reservation.refund.environment,
+      adapter.configuredEnvironment(),
+    );
+
     const result = await adapter.refund({
       paymentReference: reservation.attempt.providerReference,
       providerTxId: reservation.attempt.providerTxId,
@@ -185,9 +237,21 @@ export async function refreshRefund(refundId: string) {
     throw new Error(`Refunds are not implemented for payment provider ${refund.provider}.`);
   }
 
-  const result = await getPaymentProvider(refund.provider).fetchRefund(
-    refund.providerReference,
+  const providerId = refund.provider as PaymentProviderId;
+  const adapter = getPaymentProvider(providerId);
+  const configuredEnvironment = adapter.configuredEnvironment();
+
+  assertStoredEnvironmentMatchesConfigured(
+    refund.environment,
+    configuredEnvironment,
   );
+
+  assertStoredEnvironmentMatchesConfigured(
+    refund.paymentAttempt.environment,
+    configuredEnvironment,
+  );
+
+  const result = await adapter.fetchRefund(refund.providerReference);
 
   return applyRefundResult(refund.id, result);
 }
