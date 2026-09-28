@@ -107,8 +107,11 @@ Only enabled providers are displayed, and the selected provider must support the
 ### `PAYSTACK_ENABLED_CURRENCIES`
 Comma-separated currencies actually enabled on your Paystack merchant account, for example `NGN` or `NGN,USD`. Values outside the adapter-supported list are rejected.
 
+### `PAYSTACK_ENVIRONMENT`
+Server-only payment environment. Allowed values are exactly `TEST` or `LIVE`. Never accept this value from browser input. `TEST` must be paired with an `sk_test_...` key; `LIVE` must be paired with an `sk_live_...` key.
+
 ### `PAYSTACK_SECRET_KEY`
-Server-only live Paystack secret.
+Server-only Paystack secret. Its mode must agree with `PAYSTACK_ENVIRONMENT`.
 
 Paystack webhook URL:
 
@@ -122,8 +125,11 @@ https://vault.octalve.com/api/webhooks/paystack
 ### `FLUTTERWAVE_ENABLED_CURRENCIES`
 Comma-separated currencies actually enabled on your Flutterwave merchant account, for example `NGN,USD,GBP,EUR` as approved for your account. Unsupported values are rejected.
 
+### `FLUTTERWAVE_ENVIRONMENT`
+Server-only payment environment. Allowed values are exactly `TEST` or `LIVE`. Test credentials must use Flutterwave's test-key form; a TEST credential is rejected when configured as LIVE.
+
 ### `FLUTTERWAVE_SECRET_KEY`
-Server-only live Flutterwave API secret.
+Server-only Flutterwave API secret. Its credential mode must agree with `FLUTTERWAVE_ENVIRONMENT`.
 
 ### `FLUTTERWAVE_WEBHOOK_SECRET`
 Server-only webhook secret/hash used to authenticate Flutterwave callbacks.
@@ -134,7 +140,7 @@ Flutterwave webhook URL:
 https://vault.octalve.com/api/webhooks/flutterwave
 ```
 
-The current payment abstraction is deliberately provider-neutral. Stripe, PayPal or a regulated crypto provider can later be implemented as new adapters without rewriting checkout or settlement.
+The current payment abstraction is deliberately provider-neutral. `PaymentEnvironment` is a shared `TEST|LIVE` boundary persisted with financial records. Stripe, PayPal or a regulated Crypto provider can later be implemented as new adapters without rewriting checkout or settlement, but each adapter must implement `configuredEnvironment()`, validate its credentials/endpoints/network, and normalize trustworthy provider environment evidence before runtime enablement.
 
 ## First Admin bootstrap
 

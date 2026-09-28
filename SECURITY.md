@@ -55,6 +55,10 @@ Recommended follow-up after launch: add a second factor/passkey requirement for 
 - Paystack transactions are independently verified with Paystack before settlement.
 - Flutterwave transactions are independently verified with Flutterwave before settlement.
 - Settlement is idempotent. Provider retries/callback retries must not create duplicate grants.
+- Every financial provider record carries an explicit server-controlled `TEST` or `LIVE` environment. Browser/client input never supplies it.
+- Before settlement can grant value, the stored PaymentAttempt environment, the adapter's validated configured environment, and the verified provider environment must agree. A missing or mismatched required environment fails closed before idempotent success or any payment/order/grant mutation.
+- Webhook deduplication is namespaced by provider + environment + provider event ID so TEST history cannot suppress a later LIVE event.
+- Refund initiation checks stored versus configured environment before provider API use; provider refund results are checked again before local success, order refund state, or grant revocation is applied.
 - Refunds use provider APIs; Octalve does not mark money refunded merely because an Admin clicked a button.
 - Full delivery revocation occurs only after a provider-confirmed full refund.
 

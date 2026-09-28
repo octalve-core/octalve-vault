@@ -52,7 +52,9 @@ Cloudflare Worker at `downloads.octalve.com` receives an opaque short-lived Down
 
 ### Payments
 
-Provider registry exposes a common interface. Paystack and Flutterwave adapters initialize/verify payments and verify webhooks. A single settlement service updates orders and grants idempotently.
+Provider registry exposes a common interface. Paystack and Flutterwave adapters initialize/verify payments and verify webhooks. A single settlement service updates orders and grants idempotently. `PaymentEnvironment` is a provider-neutral `TEST|LIVE` contract persisted on PaymentAttempt, WebhookEvent and Refund. Every implemented adapter exposes `configuredEnvironment()` and normalizes provider environment evidence before the shared settlement/refund boundaries can mutate value.
+
+Future Stripe, PayPal and Crypto adapters must implement the same contract before runtime activation: validate credentials/endpoints/network for TEST or LIVE, expose `configuredEnvironment()`, normalize trustworthy environment evidence, verify provider-specific webhooks, and reuse the existing settlement/refund guards. Stripe/PayPal/Crypto enum reservation does not make them selectable until their adapters and security tests exist.
 
 ### Identity
 
@@ -115,6 +117,9 @@ A product cannot be purchased unless it is ACTIVE and has a PUBLISHED asset and 
 - Server loads active ProductPrice rows and calculates subtotal.
 - Order + PaymentAttempt are persisted before contacting an external provider.
 - Provider verification must match reference, expected amount, currency and buyer email when returned.
+- PaymentAttempt environment is server-controlled and immutable at creation; idempotency cannot be reused across TEST/LIVE.
+- Settlement requires stored, configured and verified payment environment agreement before idempotent success or any mutation.
+- Webhook and refund provider references are environment-namespaced to prevent TEST/LIVE cross-deduplication.
 - Webhook signature is verified before payload persistence/processing.
 - Settlement is idempotent and cannot create duplicate DownloadGrants.
 - Notification failure cannot roll back a successful payment settlement.

@@ -38,6 +38,28 @@ test("production deployment and verification artifacts exist", () => {
 });
 
 
+test("payment environment rollout and future-provider contract are documented", () => {
+  const envExample = readFileSync(".env.example", "utf8");
+  const environment = readFileSync("ENVIRONMENT.md", "utf8");
+  const deployment = readFileSync("DEPLOYMENT.md", "utf8");
+  const security = readFileSync("SECURITY.md", "utf8");
+  const release = readFileSync("RELEASE_VERIFICATION.md", "utf8");
+  const architecture = readFileSync("ARCHITECTURE.md", "utf8");
+
+  assert.match(envExample, /^PAYSTACK_ENVIRONMENT=TEST$/m);
+  assert.match(envExample, /^FLUTTERWAVE_ENVIRONMENT=TEST$/m);
+  assert.match(environment, /PAYSTACK_ENVIRONMENT/);
+  assert.match(environment, /FLUTTERWAVE_ENVIRONMENT/);
+  assert.match(environment, /server-only/i);
+  assert.match(deployment, /secret[\s\S]*environment|environment[\s\S]*secret/i);
+  assert.match(deployment, /migration[\s\S]*before[\s\S]*LIVE/i);
+  assert.match(security, /stored[\s\S]*configured[\s\S]*verified[\s\S]*environment/i);
+  assert.match(release, /TEST[\s\S]*retained[\s\S]*LIVE[\s\S]*KPI/i);
+  assert.match(architecture, /Stripe[\s\S]*PayPal[\s\S]*Crypto/i);
+  assert.match(architecture, /configuredEnvironment\(\)/);
+  assert.match(architecture, /PaymentEnvironment/);
+});
+
 test("pnpm 12 lockfile keeps package-manager environment separate from verified project graph", () => {
   const lock = readFileSync("pnpm-lock.yaml", "utf8");
   const workspace = readFileSync("pnpm-workspace.yaml", "utf8");

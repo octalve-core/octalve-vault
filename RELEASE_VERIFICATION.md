@@ -226,6 +226,15 @@ Before first production deployment:
 13. Add explicit `ProductPrice` records for each non-NGN currency that should be purchasable.
 14. Configure initial Coupon/Affiliate records only through the authorized Admin marketing surface and verify limits/attribution with controlled orders before general release.
 
+## Payment-environment release checkpoint
+
+- Apply the reviewed payment-environment migration while provider credentials are still TEST; existing pre-live financial rows are retained and classified as `TEST`.
+- Keep `PAYSTACK_ENVIRONMENT=TEST` paired with the existing `sk_test_...` key until the controlled test refund reaches provider-confirmed success and Vault revokes the grant.
+- TEST history remains visible in detailed Admin views, but TEST orders/customers/grants are excluded from LIVE business KPI counts.
+- Verify a refunded-only test customer no longer receives a fresh entitlement OTP and any previously issued download ticket fails after grant revocation.
+- Only after those checks pass may the Paystack secret and `PAYSTACK_ENVIRONMENT=LIVE` be changed together and one controlled low-value real-money purchase be performed.
+- Flutterwave, Stripe, PayPal and Crypto require their own provider-specific TEST integration evidence before LIVE runtime activation; they reuse the shared `PaymentEnvironment` and settlement/refund guards rather than introducing a second payment core.
+
 ## Mandatory live smoke tests
 
 Provider/infrastructure behavior cannot be proven without the real deployment accounts. Before public launch, perform controlled smoke tests for:
