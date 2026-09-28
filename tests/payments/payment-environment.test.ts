@@ -111,3 +111,61 @@ test("Flutterwave configured environment validates test-key distinction without 
     }
   }
 });
+
+test("settlement requires stored configured and verified environments to agree", async () => {
+  const environmentModule = await import("../../src/server/payments/environment.ts");
+
+  assert.equal(
+    typeof environmentModule.assertSettlementEnvironmentAgreement,
+    "function",
+  );
+
+  const assertAgreement = environmentModule.assertSettlementEnvironmentAgreement;
+
+  assert.doesNotThrow(() => assertAgreement("TEST", "TEST", "TEST"));
+  assert.doesNotThrow(() => assertAgreement("LIVE", "LIVE", "LIVE"));
+
+  assert.throws(
+    () => assertAgreement("TEST", "LIVE", "TEST"),
+    /environment mismatch/i,
+  );
+
+  assert.throws(
+    () => assertAgreement("LIVE", "LIVE", "TEST"),
+    /environment mismatch/i,
+  );
+
+  assert.throws(
+    () => assertAgreement("TEST", "TEST", undefined),
+    /environment/i,
+  );
+});
+
+test("settlement requires stored configured and verified environments to agree", async () => {
+  const environmentModule = await import("../../src/server/payments/environment.ts");
+
+  assert.equal(
+    typeof environmentModule.assertSettlementEnvironmentAgreement,
+    "function",
+  );
+
+  const assertAgreement = environmentModule.assertSettlementEnvironmentAgreement;
+
+  assert.doesNotThrow(() => assertAgreement("TEST", "TEST", "TEST"));
+  assert.doesNotThrow(() => assertAgreement("LIVE", "LIVE", "LIVE"));
+
+  assert.throws(
+    () => assertAgreement("TEST", "LIVE", "TEST"),
+    /environment mismatch/i,
+  );
+
+  assert.throws(
+    () => assertAgreement("LIVE", "LIVE", "TEST"),
+    /environment mismatch/i,
+  );
+
+  assert.throws(
+    () => assertAgreement("TEST", "TEST", undefined),
+    /environment/i,
+  );
+});

@@ -110,3 +110,81 @@ test("payment webhook history and deduplication are namespaced by provider envir
     /settleVerifiedPayment\([^)]*environment/,
   );
 });
+
+test("settlement enforces payment environment before idempotency or value mutation", () => {
+  const source = readFileSync("src/server/vault/settlement-service.ts", "utf8");
+
+  assert.match(
+    source,
+    /const\s+providerId\s*=\s*attempt\.provider\s+as\s+PaymentProviderId/,
+  );
+
+  assert.match(source, /getPaymentProvider\(providerId\)/);
+  assert.match(source, /adapter\.configuredEnvironment\(\)/);
+  assert.match(source, /assertSettlementEnvironmentAgreement\(/);
+
+  const guard = source.indexOf("assertSettlementEnvironmentAgreement(");
+  const verification = source.indexOf("assertVerificationMatchesAttempt(");
+  const disposition = source.indexOf("settlementDisposition(");
+  const paymentMutation = source.indexOf("tx.paymentAttempt.update(");
+  const grantMutation = source.indexOf("tx.downloadGrant.upsert(");
+
+  assert.ok(
+    guard >= 0 && guard < verification,
+    "environment guard must precede payment-field verification",
+  );
+
+  assert.ok(
+    guard < disposition,
+    "environment guard must precede idempotent settlement disposition",
+  );
+
+  assert.ok(
+    guard < paymentMutation,
+    "environment guard must precede payment mutation",
+  );
+
+  assert.ok(
+    guard < grantMutation,
+    "environment guard must precede grant mutation",
+  );
+});
+
+test("settlement enforces payment environment before idempotency or value mutation", () => {
+  const source = readFileSync("src/server/vault/settlement-service.ts", "utf8");
+
+  assert.match(
+    source,
+    /const\s+providerId\s*=\s*attempt\.provider\s+as\s+PaymentProviderId/,
+  );
+
+  assert.match(source, /getPaymentProvider\(providerId\)/);
+  assert.match(source, /adapter\.configuredEnvironment\(\)/);
+  assert.match(source, /assertSettlementEnvironmentAgreement\(/);
+
+  const guard = source.indexOf("assertSettlementEnvironmentAgreement(");
+  const verification = source.indexOf("assertVerificationMatchesAttempt(");
+  const disposition = source.indexOf("settlementDisposition(");
+  const paymentMutation = source.indexOf("tx.paymentAttempt.update(");
+  const grantMutation = source.indexOf("tx.downloadGrant.upsert(");
+
+  assert.ok(
+    guard >= 0 && guard < verification,
+    "environment guard must precede payment-field verification",
+  );
+
+  assert.ok(
+    guard < disposition,
+    "environment guard must precede idempotent settlement disposition",
+  );
+
+  assert.ok(
+    guard < paymentMutation,
+    "environment guard must precede payment mutation",
+  );
+
+  assert.ok(
+    guard < grantMutation,
+    "environment guard must precede grant mutation",
+  );
+});

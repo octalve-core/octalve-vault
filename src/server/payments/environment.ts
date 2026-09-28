@@ -24,3 +24,12 @@ export function assertVerifiedEnvironmentMatchesAttempt(
   }
   if (verified !== attempt) throw new Error("Payment environment mismatch.");
 }
+
+export function assertSettlementEnvironmentAgreement(
+  stored: PaymentEnvironment,
+  configured: PaymentEnvironment,
+  verified: PaymentEnvironment | undefined,
+): void {
+  assertStoredEnvironmentMatchesConfigured(stored, configured);
+  assertVerifiedEnvironmentMatchesAttempt(stored, verified, { required: true });
+}

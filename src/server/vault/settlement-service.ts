@@ -1,4 +1,7 @@
+import type { PaymentProviderId } from "../../domain/constants";
 import type { PaymentVerification } from "../payments/types";
+import { assertSettlementEnvironmentAgreement } from "../payments/environment";
+import { getPaymentProvider } from "../payments/registry";
 import { assertVerificationMatchesAttempt } from "../payments/verification";
 import { settlementDisposition } from "./settlement-core";
 import { prisma } from "../../lib/prisma";
@@ -20,6 +23,16 @@ export async function settleVerifiedPayment(input: {
       },
     });
     if (!attempt) throw new Error("Payment attempt not found.");
+
+    const providerId = attempt.provider as PaymentProviderId;
+    const adapter = getPaymentProvider(providerId);
+    const configuredEnvironment = adapter.configuredEnvironment();
+
+    assertSettlementEnvironmentAgreement(
+      attempt.environment,
+      configuredEnvironment,
+      input.verification.environment,
+    );
 
     assertVerificationMatchesAttempt(
       {
