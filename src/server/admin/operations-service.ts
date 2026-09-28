@@ -306,5 +306,11 @@ export async function listAdminRefundableOrders() {
         }
       }),
     )
-    .map(({ payments: _payments, ...order }) => order);
+    .map((order) => ({
+      id: order.id,
+      reference: order.reference,
+      email: order.email,
+      totalAmount: order.totalAmount,
+      currency: order.currency,
+    }));
 }
