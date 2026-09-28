@@ -209,3 +209,42 @@ test("refund initiation and refresh enforce environment before provider and loca
     "refresh environment guard must precede provider fetch",
   );
 });
+
+test("Admin business metrics are LIVE-backed while detailed payment history remains complete", () => {
+  const source = readFileSync(
+    "src/server/admin/operations-service.ts",
+    "utf8",
+  );
+
+  assert.match(source, /environment:\s*"LIVE"/);
+  assert.match(
+    source,
+    /status:\s*"SUCCEEDED"|status:\s*\{\s*in:\s*\[[^\]]*"SUCCEEDED"/,
+  );
+  assert.match(
+    source,
+    /listAdminCustomers[\s\S]*environment:\s*"LIVE"/,
+  );
+  assert.match(source, /listAdminDownloads[\s\S]*payments/);
+  assert.match(source, /listAdminRefundableOrders/);
+
+  const paymentsStart = source.indexOf(
+    "export async function listAdminPayments",
+  );
+  const refundableStart = source.indexOf(
+    "export async function listAdminRefundableOrders",
+  );
+
+  assert.ok(paymentsStart >= 0);
+  assert.ok(refundableStart > paymentsStart);
+
+  const paymentsSource = source.slice(
+    paymentsStart,
+    refundableStart,
+  );
+
+  assert.doesNotMatch(
+    paymentsSource,
+    /environment:\s*"LIVE"/,
+  );
+});

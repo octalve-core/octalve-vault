@@ -41,3 +41,39 @@ test("product editor receives explicit RBAC capabilities from the protected page
   assert.match(editor, /canEditPrice/);
   assert.match(editor, /canPublish/);
 });
+
+test("Admin commerce history renders explicit TEST or LIVE payment environment", () => {
+  const orders = readFileSync("src/features/admin/orders/orders-table.tsx", "utf8");
+  const payments = readFileSync("src/features/admin/payments/payments-table.tsx", "utf8");
+  const downloads = readFileSync("src/features/admin/downloads/downloads-table.tsx", "utf8");
+  const downloadsPage = readFileSync(
+    "src/app/admin/(protected)/downloads/page.tsx",
+    "utf8",
+  );
+
+  for (const source of [orders, payments, downloads]) {
+    assert.match(source, /environment/);
+  }
+
+  assert.match(
+    orders,
+    /provider.*environment.*status|environment.*status/s,
+  );
+  assert.match(payments, /environment/);
+  assert.match(downloadsPage, /environment/);
+
+  // Preserve the newer production promotion presentation.
+  assert.match(orders, /discountAmount/);
+  assert.match(orders, /couponCode/);
+  assert.match(orders, /affiliateCode/);
+});
+
+test("Admin payments page delegates refundable-order environment filtering to the server", () => {
+  const page = readFileSync(
+    "src/app/admin/(protected)/payments/page.tsx",
+    "utf8",
+  );
+
+  assert.match(page, /listAdminRefundableOrders/);
+  assert.doesNotMatch(page, /orders\.filter\(/);
+});
