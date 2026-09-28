@@ -1,4 +1,4 @@
-import type { CurrencyCode, PaymentProviderId } from "../../domain/constants";
+import type { CurrencyCode, PaymentEnvironment, PaymentProviderId } from "../../domain/constants";
 
 export type PaymentInitializeInput = {
   reference: string;
@@ -27,6 +27,7 @@ export type PaymentRefundInput = {
 
 export type PaymentRefundResult = {
   providerReference: string;
+  environment: PaymentEnvironment;
   status: "PROCESSING" | "SUCCEEDED" | "FAILED";
   raw: unknown;
 };
@@ -40,11 +41,13 @@ export type PaymentVerification = {
   currency?: CurrencyCode;
   email?: string | null;
   paidAt?: Date | null;
+  environment?: PaymentEnvironment;
   raw: unknown;
 };
 
 export interface PaymentProviderAdapter {
   readonly id: PaymentProviderId;
+  configuredEnvironment(): PaymentEnvironment;
   supportsCurrency(currency: CurrencyCode): boolean;
   initialize(input: PaymentInitializeInput): Promise<PaymentInitializeResult>;
   verify(reference: string): Promise<PaymentVerification>;
