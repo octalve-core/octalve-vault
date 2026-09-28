@@ -76,3 +76,37 @@ test("checkout binds idempotency and new payment attempts to the provider enviro
   assert.ok(publicInput);
   assert.doesNotMatch(publicInput[1] ?? "", /\benvironment\s*:/);
 });
+
+test("payment webhook history and deduplication are namespaced by provider environment", () => {
+  const source = readFileSync("src/server/payments/webhook-service.ts", "utf8");
+
+  assert.match(
+    source,
+    /const\s+environment\s*=\s*adapter\.configuredEnvironment\(\)/,
+  );
+
+  assert.match(
+    source,
+    /provider_environment_providerEventId/,
+  );
+
+  assert.match(
+    source,
+    /provider:\s*providerId,\s*environment,\s*providerEventId:\s*eventId/,
+  );
+
+  assert.match(
+    source,
+    /const\s+verification\s*=\s*await\s+adapter\.verify\(reference\)/,
+  );
+
+  assert.match(
+    source,
+    /settleVerifiedPayment\(\{\s*paymentAttemptId:\s*attempt\.id,\s*verification\s*\}\)/,
+  );
+
+  assert.doesNotMatch(
+    source,
+    /settleVerifiedPayment\([^)]*environment/,
+  );
+});

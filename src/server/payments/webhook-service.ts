@@ -28,10 +28,17 @@ export async function processPaymentWebhook(providerId: PaymentProviderId, reque
     return { status: 400, body: { error: "Invalid JSON payload." } };
   }
 
+  const environment = adapter.configuredEnvironment();
   const eventId = adapter.extractWebhookEventId(payload);
   if (eventId) {
     const duplicate = await prisma.webhookEvent.findUnique({
-      where: { provider_providerEventId: { provider: providerId, providerEventId: eventId } },
+      where: {
+        provider_environment_providerEventId: {
+          provider: providerId,
+          environment,
+          providerEventId: eventId,
+        },
+      },
     });
     if (duplicate?.processedAt) return { status: 200, body: { received: true, duplicate: true } };
   }
@@ -45,6 +52,7 @@ export async function processPaymentWebhook(providerId: PaymentProviderId, reque
     data: {
       orderId: attempt?.orderId ?? null,
       provider: providerId,
+      environment,
       providerEventId: eventId,
       eventType: adapter.extractWebhookEventType(payload),
       signatureValid: true,
