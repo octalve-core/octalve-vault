@@ -121,6 +121,11 @@ export function ProductDetailModal({
                 >
                   {product.title}
                 </h3>
+                {product.status === "COMING_SOON" ? (
+                  <p className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-800">
+                    {translate(messages, "product.coming")}
+                  </p>
+                ) : null}
                 <p className="mt-3 text-base font-medium text-slate-950">
                   {product.formattedPrice ?? translate(messages, "product.unavailableCurrency")}
                 </p>
@@ -173,7 +178,7 @@ export function ProductDetailModal({
             <button
               type="button"
               disabled={!product.purchaseAvailable || added}
-              onClick={onAdd}
+              onClick={() => { if (product.purchaseAvailable) onAdd(); }}
               className={`mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 px-5 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A84FF] ${
                 !product.purchaseAvailable
                   ? "cursor-not-allowed bg-slate-100 text-slate-400"
@@ -183,11 +188,13 @@ export function ProductDetailModal({
               }`}
             >
               {added ? <Check className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
-              {!product.purchaseAvailable
-                ? translate(messages, "product.unavailableCurrency")
-                : added
-                  ? translate(messages, "product.added")
-                  : translate(messages, "product.add")}
+              {product.status === "COMING_SOON"
+                ? translate(messages, "product.coming")
+                : !product.purchaseAvailable
+                  ? translate(messages, "product.unavailableCurrency")
+                  : added
+                    ? translate(messages, "product.added")
+                    : translate(messages, "product.add")}
             </button>
           </div>
         </div>

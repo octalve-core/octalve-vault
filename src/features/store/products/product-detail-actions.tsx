@@ -15,6 +15,7 @@ export function ProductDetailActions({ product, locale }: { product: PublicProdu
   const messages = getMessages(locale);
   const view = toProductViewModel(product, currency, locale);
   const added = cart.has(product.id);
+  const comingSoon = view.status === "COMING_SOON";
 
   return (
     <div className="mt-8 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
@@ -22,10 +23,15 @@ export function ProductDetailActions({ product, locale }: { product: PublicProdu
       <p className="mt-1 text-3xl font-medium tracking-[-0.04em] text-slate-950">
         {view.formattedPrice ?? translate(messages, "product.unavailableCurrency")}
       </p>
+      {comingSoon ? (
+        <p className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-800">
+          {translate(messages, "product.coming")}
+        </p>
+      ) : null}
       <button
         type="button"
         disabled={!view.purchaseAvailable || added}
-        onClick={() => cart.add(view.id)}
+        onClick={() => { if (view.purchaseAvailable) cart.add(view.id); }}
         className={`mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-medium transition ${
           !view.purchaseAvailable
             ? "cursor-not-allowed bg-slate-200 text-slate-400"
@@ -35,11 +41,13 @@ export function ProductDetailActions({ product, locale }: { product: PublicProdu
         }`}
       >
         {added ? <Check className="h-4 w-4" aria-hidden="true" /> : <ShoppingBag className="h-4 w-4" aria-hidden="true" />}
-        {!view.purchaseAvailable
-          ? translate(messages, "product.unavailableCurrency")
-          : added
-            ? translate(messages, "product.added")
-            : translate(messages, "product.add")}
+        {comingSoon
+          ? translate(messages, "product.coming")
+          : !view.purchaseAvailable
+            ? translate(messages, "product.unavailableCurrency")
+            : added
+              ? translate(messages, "product.added")
+              : translate(messages, "product.add")}
       </button>
     </div>
   );

@@ -21,6 +21,7 @@ export function ProductCard({ product, locale }: { product: PublicProduct; local
   const [detailsOpen, setDetailsOpen] = useState(false);
   const view = toProductViewModel(product, currency, locale);
   const added = cart.has(product.id);
+  const comingSoon = view.status === "COMING_SOON";
 
   return (
     <>
@@ -37,6 +38,11 @@ export function ProductCard({ product, locale }: { product: PublicProduct; local
             className="object-cover transition duration-500 group-hover:scale-[1.02]"
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
           />
+          {comingSoon ? (
+            <span className="absolute left-4 top-4 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-medium text-white">
+              {translate(messages, "product.coming")}
+            </span>
+          ) : null}
         </Link>
 
         <div className="flex flex-1 flex-col p-6">
@@ -77,7 +83,7 @@ export function ProductCard({ product, locale }: { product: PublicProduct; local
               <button
                 type="button"
                 disabled={!view.purchaseAvailable}
-                onClick={() => cart.add(view.id)}
+                onClick={() => { if (view.purchaseAvailable) cart.add(view.id); }}
                 className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition-colors ${
                   view.purchaseAvailable
                     ? "bg-[#0A84FF] text-white hover:bg-[#0064E0]"
@@ -85,9 +91,11 @@ export function ProductCard({ product, locale }: { product: PublicProduct; local
                 }`}
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
-                {view.purchaseAvailable
-                  ? translate(messages, "product.add")
-                  : translate(messages, "product.unavailableCurrency")}
+                {comingSoon
+                  ? translate(messages, "product.coming")
+                  : view.purchaseAvailable
+                    ? translate(messages, "product.add")
+                    : translate(messages, "product.unavailableCurrency")}
               </button>
             )}
           </div>
@@ -99,7 +107,7 @@ export function ProductCard({ product, locale }: { product: PublicProduct; local
         locale={locale}
         open={detailsOpen}
         added={added}
-        onAdd={() => cart.add(view.id)}
+        onAdd={() => { if (view.purchaseAvailable) cart.add(view.id); }}
         onClose={() => setDetailsOpen(false)}
       />
     </>

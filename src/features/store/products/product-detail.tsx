@@ -39,6 +39,11 @@ export function ProductDetail({ product, locale }: { product: PublicProduct; loc
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#0064E0]">
               {product.category}
             </p>
+            {product.status === "COMING_SOON" ? (
+              <p className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-800">
+                {translate(messages, "product.coming")}
+              </p>
+            ) : null}
             <h1 className="mt-3 text-4xl font-medium tracking-[-0.05em] text-slate-950 sm:text-5xl">
               {product.title}
             </h1>
