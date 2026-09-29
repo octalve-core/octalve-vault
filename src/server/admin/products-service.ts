@@ -29,7 +29,7 @@ export async function getAdminProduct(id: string) {
 }
 
 export async function createAdminProduct(actorAdminId: string, input: { slug: string; title: string; category: string }) {
-  const id = `vp_${generateOpaqueToken(10).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)}`;
+  const id = `vp_${generateOpaqueToken(16).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)}`;
   const product = await prisma.product.create({
     data: {
       id,

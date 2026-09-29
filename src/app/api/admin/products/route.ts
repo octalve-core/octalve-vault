@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminPermission } from "@/server/auth/admin-session";
 import { adminError } from "@/server/admin/http";
+import { mapProductAdminError } from "@/server/admin/admin-errors";
 import { createAdminProduct, listAdminProducts } from "@/server/admin/products-service";
 
 export const runtime = "nodejs";
@@ -15,7 +16,15 @@ export async function POST(request: Request) {
     const auth = await requireAdminPermission(request, "product.write");
     const body = (await request.json()) as Record<string, unknown>;
     if (typeof body.slug !== "string" || typeof body.title !== "string" || typeof body.category !== "string") throw new Error("Slug, title and category are required.");
-    const product = await createAdminProduct(auth.user.id, { slug: body.slug, title: body.title, category: body.category });
-    return NextResponse.json({ product }, { status: 201 });
-  } catch (error) { return adminError(error); }
+
+    try {
+      const product = await createAdminProduct(auth.user.id, { slug: body.slug, title: body.title, category: body.category });
+      return NextResponse.json({ product }, { status: 201 });
+    } catch (error) {
+      const mappedProductError = mapProductAdminError(error);
+      return NextResponse.json(mappedProductError.body, { status: mappedProductError.status });
+    }
+  } catch (error) {
+    return adminError(error);
+  }
 }
