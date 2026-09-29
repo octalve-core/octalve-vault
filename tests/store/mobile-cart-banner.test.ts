@@ -6,7 +6,7 @@ import test from "node:test";
 
 const headerPath = "src/features/store/layout/site-header.tsx";
 const layoutPath = "src/app/[locale]/layout.tsx";
-const bannerPath = "src/features/store/layout/mobile-cart-checkout-bar.tsx";
+const bannerPath = "src/features/store/layout/cart-checkout-bar.tsx";
 const visibilityPath = "src/features/store/layout/mobile-cart-visibility.ts";
 
 test("mobile cart visibility is limited to browsing routes", async () => {
@@ -40,7 +40,7 @@ test("mobile cart visibility is limited to browsing routes", async () => {
   }
 });
 
-test("mobile bar mirrors cart subtotal presentation but not payment authority", () => {
+test("responsive cart bar mirrors cart subtotal presentation without becoming payment authority", () => {
   assert.equal(existsSync(bannerPath), true);
   const source = readFileSync(bannerPath, "utf8");
 
@@ -54,7 +54,11 @@ test("mobile bar mirrors cart subtotal presentation but not payment authority", 
   assert.match(source, /localeHref\(locale, "\/checkout"\)/);
   assert.match(source, /localeHref\(locale, "\/cart"\)/);
   assert.match(source, /safe-area-inset-bottom/);
-  assert.match(source, /xl:hidden/);
+  assert.match(source, /sm:max-w-\[720px\]/);
+  assert.match(source, /lg:max-w-\[880px\]/);
+  assert.match(source, /sm:px-5/);
+  assert.match(source, /lg:px-6/);
+  assert.doesNotMatch(source, /xl:hidden/);
   assert.match(source, /!unavailable \?/);
   assert.match(source, /ShoppingBag/);
   assert.match(source, /rtl:rotate-180/);
@@ -69,7 +73,7 @@ test("localized layout gives the bar DB-backed public products", () => {
   const source = readFileSync(layoutPath, "utf8");
   assert.match(source, /getPublicProducts/);
   assert.match(source, /const products = await getPublicProducts\(locale\);/);
-  assert.match(source, /<MobileCartCheckoutBar locale=\{locale\} products=\{products\} \/>/);
+  assert.match(source, /<CartCheckoutBar locale=\{locale\} products=\{products\} \/>/);
   assert.doesNotMatch(source, /checkout\/quote/);
 });
 

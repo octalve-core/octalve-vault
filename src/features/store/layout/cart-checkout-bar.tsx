@@ -15,7 +15,7 @@ import { useCurrency } from "../currency/use-currency";
 import { toProductViewModel } from "../products/product-view-model";
 import { shouldShowMobileCartBar } from "./mobile-cart-visibility";
 
-export function MobileCartCheckoutBar({
+export function CartCheckoutBar({
   products,
   locale,
 }: {
@@ -60,9 +60,9 @@ export function MobileCartCheckoutBar({
   return (
     <aside
       aria-label={translate(messages, "cart.summary")}
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] xl:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:px-5 lg:px-6"
     >
-      <div className="pointer-events-auto mx-auto flex max-w-xl items-center gap-3 rounded-2xl border border-white/10 bg-[#000A16] p-3 text-white shadow-[0_18px_55px_rgba(0,10,22,0.28)]">
+      <div className="pointer-events-auto mx-auto flex w-full max-w-xl items-center gap-3 rounded-2xl border border-white/10 bg-[#000A16] p-3 text-white shadow-[0_18px_55px_rgba(0,10,22,0.28)] sm:max-w-[720px] sm:gap-4 sm:p-4 lg:max-w-[880px]">
         <Link
           href={localeHref(locale, "/cart")}
           aria-label={`${cartLabel} (${items.length})`}

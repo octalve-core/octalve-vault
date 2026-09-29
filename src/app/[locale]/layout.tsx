@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Locale } from "@/domain/constants";
 import { isLocale, isRtlLocale } from "@/config/locales";
 import { getPublicProducts } from "@/features/store/catalogue/catalogue-service";
-import { MobileCartCheckoutBar } from "@/features/store/layout/mobile-cart-checkout-bar";
+import { CartCheckoutBar } from "@/features/store/layout/cart-checkout-bar";
 import { SiteHeader } from "@/features/store/layout/site-header";
 import { SiteFooter } from "@/features/store/layout/site-footer";
 import { CommercePreferencesProvider } from "@/features/store/preferences/commerce-preferences";
@@ -37,7 +37,7 @@ export default async function LocaleLayout({ children, params }: Readonly<{ chil
       <div lang={locale} dir={isRtlLocale(locale) ? "rtl" : "ltr"} className="min-h-screen bg-[#F8FAFC] text-[#000A16]">
         <SiteHeader locale={locale} />
         <main>{children}</main>
-        <MobileCartCheckoutBar locale={locale} products={products} />
+        <CartCheckoutBar locale={locale} products={products} />
         <SiteFooter locale={locale} />
       </div>
     </CommercePreferencesProvider>
