@@ -62,7 +62,7 @@ export function MobileVaultMenu({
         <Link
           href={localeHref(locale, "/vault")}
           onClick={onNavigate}
-          className="mt-4 flex min-h-11 w-full items-center justify-between rounded-xl bg-[#0A84FF] px-5 py-3 text-[15px] font-medium text-white shadow-[0_14px_30px_rgba(10,132,255,0.20)] transition hover:bg-[#006FE0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/40"
+          className="mt-4 flex min-h-11 w-full items-center justify-between rounded-xl bg-[#0064E0] px-5 py-3 text-[15px] shadow-[0_14px_30px_rgba(10,132,255,0.20)] transition hover:bg-[#0057C2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/40 text-white font-medium"
         >
           <span>{translate(messages, "nav.myVault")}</span>
           <ChevronRight className="h-4 w-4" aria-hidden="true" />

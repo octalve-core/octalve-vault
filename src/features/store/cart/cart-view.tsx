@@ -53,7 +53,7 @@ export function CartView({ products, locale }: { products: PublicProduct[]; loca
             </p>
             <Link
               href={localeHref(locale, "/products")}
-              className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#0A84FF] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#0064E0]"
+              className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#0064E0] px-5 py-3 text-sm transition hover:bg-[#0057C2] text-white font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF] focus-visible:ring-offset-2"
             >
               {translate(messages, "cart.continue")}
               <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
@@ -144,10 +144,10 @@ export function CartView({ products, locale }: { products: PublicProduct[]; loca
               <Link
                 aria-disabled={unavailable}
                 href={unavailable ? localeHref(locale, "/cart") : localeHref(locale, "/checkout")}
-                className={`mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-medium transition ${
+                className={`mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF] focus-visible:ring-offset-2 ${
                   unavailable
                     ? "pointer-events-none bg-slate-200 text-slate-400"
-                    : "bg-[#0A84FF] text-white hover:bg-[#0064E0]"
+                    : "bg-[#0064E0] text-white hover:bg-[#0057C2]"
                 }`}
               >
                 {translate(messages, "cart.checkout")}

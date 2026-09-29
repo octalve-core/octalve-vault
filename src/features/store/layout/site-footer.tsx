@@ -56,7 +56,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
                 target="_blank"
                 rel="noreferrer"
                 aria-label={item.label}
-                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#0A84FF] text-xs font-medium uppercase text-white transition hover:scale-105 hover:bg-[#006FE0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#0064E0] text-xs uppercase transition hover:scale-105 hover:bg-[#0057C2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 text-white font-medium"
               >
                 {item.short}
               </a>

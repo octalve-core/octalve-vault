@@ -199,7 +199,7 @@ export function CheckoutView({
         </p>
         <Link
           href={localeHref(locale, "/products")}
-          className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#E61525] px-5 text-sm font-medium text-white"
+          className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#E61525] px-5 text-sm text-white font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF] focus-visible:ring-offset-2"
         >
           <ArrowLeft className="h-4 w-4" /> {messages["checkout.return"]}
         </Link>
@@ -365,7 +365,7 @@ export function CheckoutView({
             unavailablePrice ||
             promotionNeedsQuote
           }
-          className="mt-7 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-full bg-[#E61525] px-6 text-sm font-medium text-white transition hover:bg-[#ff2638] disabled:cursor-not-allowed disabled:opacity-45"
+          className="mt-7 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-full bg-[#E61525] px-6 text-sm transition hover:bg-[#C81020] disabled:cursor-not-allowed disabled:opacity-45 text-white font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF] focus-visible:ring-offset-2"
         >
           {submitting ? (
             <LoaderCircle className="h-4 w-4 animate-spin" />

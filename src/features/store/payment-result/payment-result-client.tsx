@@ -89,7 +89,7 @@ export function PaymentResultClient({
         </p>
         <Link
           href={localeHref(locale, "/vault")}
-          className="mt-7 inline-flex min-h-12 items-center rounded-full bg-[#0064E0] px-6 text-sm font-medium text-white transition hover:bg-[#0A84FF]"
+          className="mt-7 inline-flex min-h-12 items-center rounded-full bg-[#0064E0] px-6 text-sm transition hover:bg-[#0057C2] text-white font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF] focus-visible:ring-offset-2"
         >
           {messages["payment.openVault"]}
         </Link>
@@ -130,7 +130,7 @@ export function PaymentResultClient({
         </p>
         <Link
           href={localeHref(locale, "/vault")}
-          className="mt-7 inline-flex min-h-12 items-center rounded-full bg-[#0064E0] px-6 text-sm font-medium text-white transition hover:bg-[#0A84FF]"
+          className="mt-7 inline-flex min-h-12 items-center rounded-full bg-[#0064E0] px-6 text-sm transition hover:bg-[#0057C2] text-white font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF] focus-visible:ring-offset-2"
         >
           {messages["payment.goVault"]}
         </Link>

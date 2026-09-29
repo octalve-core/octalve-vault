@@ -61,7 +61,7 @@ export function OtpPanel({
         type="button"
         disabled={busy || otp.length !== 6}
         onClick={onVerify}
-        className="mt-6 min-h-12 w-full rounded-full bg-[#0064E0] px-5 text-sm font-medium text-white transition hover:bg-[#0A84FF] disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-6 min-h-12 w-full rounded-full bg-[#0064E0] px-5 text-sm transition hover:bg-[#0057C2] disabled:cursor-not-allowed disabled:opacity-40 text-white font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF] focus-visible:ring-offset-2"
       >
         {busy ? messages["vault.verifying"] : messages["vault.verify"]}
       </button>

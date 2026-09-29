@@ -179,7 +179,7 @@ export function ProductDetailModal({
                   ? "cursor-not-allowed bg-slate-100 text-slate-400"
                   : added
                     ? "cursor-default bg-emerald-50 text-emerald-700"
-                    : "bg-[#0A84FF] text-white hover:bg-[#0064E0]"
+                    : "bg-[#0064E0] text-white hover:bg-[#0057C2]"
               }`}
             >
               {added ? <Check className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}

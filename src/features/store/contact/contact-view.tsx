@@ -128,7 +128,7 @@ export function ContactView({ locale, supportEmail }: ContactViewProps) {
           <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-0 lg:shrink-0">
             <Link
               href={shopHref}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#006FE0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0064E0] px-5 py-3 text-sm transition hover:bg-[#0057C2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white font-medium"
             >
               <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.8} />
               {translate(messages, "contact.shopAction")}

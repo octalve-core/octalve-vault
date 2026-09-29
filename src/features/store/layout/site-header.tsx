@@ -95,7 +95,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             <CartNavAction locale={locale} />
             <Link
               href={localeHref(locale, "/vault")}
-              className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl bg-[#0A84FF] px-4 text-[14px] font-medium text-white shadow-[0_14px_30px_rgba(10,132,255,0.20)] transition hover:bg-[#006FE0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/40"
+              className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl bg-[#0064E0] px-4 text-[14px] shadow-[0_14px_30px_rgba(10,132,255,0.20)] transition hover:bg-[#0057C2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/40 text-white font-medium"
             >
               {translate(messages, "nav.myVault")}
             </Link>

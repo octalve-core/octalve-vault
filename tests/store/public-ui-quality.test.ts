@@ -43,7 +43,7 @@ test("public navigation retains accessible labels, focus states and >=44px mobil
   assert.match(header, /aria-expanded=\{mobileOpen\}/);
   assert.match(header, /aria-controls="octalve-vault-mobile-menu"/);
   assert.match(header, /focus-visible:ring-2/);
-  assert.match(header, /bg-\[#0A84FF\][^"\n]*text-white/);
+  assert.match(header, /bg-\[#0064E0\][^"\n]*text-white/);
 
   assert.match(mobile, /aria-label="Mobile navigation"/);
   assert.match(mobile, /min-h-11/);
