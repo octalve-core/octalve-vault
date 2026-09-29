@@ -3,13 +3,24 @@ import { requireAdminPermission } from "@/server/auth/admin-session";
 import { adminError } from "@/server/admin/http";
 import { mapProductAdminError } from "@/server/admin/admin-errors";
 import { createAdminProduct, listAdminProducts } from "@/server/admin/products-service";
+import { parseProductIndexParams } from "@/server/admin/products-index";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  try { await requireAdminPermission(request, "product.read"); return NextResponse.json({ products: await listAdminProducts() }); }
-  catch (error) { return adminError(error); }
+  try {
+    await requireAdminPermission(request, "product.read");
+    const input = parseProductIndexParams(new URL(request.url).searchParams);
+    const result = await listAdminProducts(input);
+    return NextResponse.json({
+      products: result.items,
+      meta: result.meta,
+      activeFilters: result.activeFilters,
+    });
+  } catch (error) {
+    return adminError(error);
+  }
 }
 export async function POST(request: Request) {
   try {

@@ -1,7 +1,28 @@
+import type { Prisma } from "@prisma/client";
+
 import { CURRENCIES, LOCALES, PRODUCT_STATUSES, type CurrencyCode, type Locale, type ProductStatus } from "../../domain/constants";
 import { generateOpaqueToken } from "../../domain/random";
 import { prisma } from "../../lib/prisma";
 import { writeAdminAudit } from "./audit";
+import {
+  buildProductOrderBy,
+  buildProductWhere,
+  productIndexActiveFilters,
+  productIndexWindow,
+  type ProductIndexInput,
+  type ProductIndexResult,
+} from "./products-index";
+import { paginationMeta } from "./resource-index";
+
+const adminProductInclude = {
+  translations: true,
+  prices: true,
+  assets: { orderBy: { version: "desc" as const } },
+} satisfies Prisma.ProductInclude;
+
+export type AdminProductListItem = Prisma.ProductGetPayload<{
+  include: typeof adminProductInclude;
+}>;
 
 function slug(value: string): string {
   const normalized = value.trim().toLowerCase();
@@ -17,11 +38,57 @@ export function isProductStatus(value: string): value is ProductStatus { return 
 export function isSupportedLocale(value: string): value is Locale { return (LOCALES as readonly string[]).includes(value); }
 export function isSupportedCurrency(value: string): value is CurrencyCode { return (CURRENCIES as readonly string[]).includes(value); }
 
-export async function listAdminProducts() {
-  return prisma.product.findMany({
-    include: { translations: true, prices: true, assets: { orderBy: { version: "desc" } } },
-    orderBy: [{ updatedAt: "desc" }],
+export async function listAdminProducts(
+  input: ProductIndexInput,
+): Promise<ProductIndexResult<AdminProductListItem>> {
+  const where = buildProductWhere(input);
+  const { skip, take } = productIndexWindow(input);
+  const total = await prisma.product.count({ where });
+
+  let items: AdminProductListItem[];
+  if (input.sort === "title") {
+    const titleRows = await prisma.productTranslation.findMany({
+      where: { locale: "en", product: where },
+      orderBy: [{ title: "asc" }, { productId: "asc" }],
+      skip,
+      take,
+      select: { productId: true },
+    });
+    const ids = titleRows.map((row) => row.productId);
+    const rows = ids.length
+      ? await prisma.product.findMany({
+          where: { id: { in: ids } },
+          include: adminProductInclude,
+        })
+      : [];
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    items = ids
+      .map((id) => byId.get(id))
+      .filter((row): row is AdminProductListItem => Boolean(row));
+  } else {
+    items = await prisma.product.findMany({
+      where,
+      include: adminProductInclude,
+      orderBy: buildProductOrderBy(input),
+      skip,
+      take,
+    });
+  }
+
+  return {
+    items,
+    meta: paginationMeta(input.page, input.pageSize, total),
+    activeFilters: productIndexActiveFilters(input),
+  };
+}
+
+export async function listAdminProductCategories(): Promise<string[]> {
+  const rows = await prisma.product.findMany({
+    distinct: ["category"],
+    select: { category: true },
+    orderBy: { category: "asc" },
   });
+  return rows.map((row) => row.category.trim()).filter(Boolean);
 }
 
 export async function getAdminProduct(id: string) {
