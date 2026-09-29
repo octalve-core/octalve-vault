@@ -196,7 +196,7 @@ export function MarketingManager({
       {canWrite ? (
         <div className="grid gap-6 xl:grid-cols-2">
           <form action={createCoupon} className="rounded-[26px] border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-950">Create coupon</h2>
+            <h2 className="text-lg font-medium text-slate-950">Create coupon</h2>
             <p className="mt-1 text-sm leading-6 text-slate-500">
               Coupon rules are validated again on the server before any order total is changed.
             </p>
@@ -233,7 +233,7 @@ export function MarketingManager({
           </form>
 
           <form action={createAffiliate} className="rounded-[26px] border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-950">Create affiliate</h2>
+            <h2 className="text-lg font-medium text-slate-950">Create affiliate</h2>
             <p className="mt-1 text-sm leading-6 text-slate-500">
               Commission is optional. Leaving it blank records attribution only and creates no payout assumption.
             </p>
@@ -249,13 +249,13 @@ export function MarketingManager({
       ) : null}
 
       <section className="rounded-[26px] border border-slate-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-slate-950">Coupons</h2>
+        <h2 className="text-lg font-medium text-slate-950">Coupons</h2>
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="text-xs uppercase tracking-[.1em] text-slate-400"><tr><th className="pb-3">Code</th><th>Name</th><th>Rule</th><th>Products</th><th>Usage</th><th>Window</th><th>Status</th></tr></thead>
             <tbody>{coupons.map((coupon) => (
               <tr key={coupon.id} className="border-t border-slate-100">
-                <td className="py-4 font-mono font-semibold">{coupon.code}</td>
+                <td className="py-4 font-mono font-medium">{coupon.code}</td>
                 <td>{coupon.name}</td>
                 <td>{coupon.discountType === "PERCENTAGE" ? `${(coupon.percentageBps ?? 0) / 100}%` : `${coupon.currency ?? ""} ${coupon.fixedAmountMinor === null ? "—" : minorToMajorString(coupon.fixedAmountMinor)}`}</td>
                 <td>{coupon.productIds.length ? coupon.productIds.join(", ") : "All"}</td>
@@ -269,13 +269,13 @@ export function MarketingManager({
       </section>
 
       <section className="rounded-[26px] border border-slate-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-slate-950">Affiliates</h2>
+        <h2 className="text-lg font-medium text-slate-950">Affiliates</h2>
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="text-xs uppercase tracking-[.1em] text-slate-400"><tr><th className="pb-3">Code</th><th>Name</th><th>Email</th><th>Commission</th><th>Orders</th><th>Status</th></tr></thead>
             <tbody>{affiliates.map((affiliate) => (
               <tr key={affiliate.id} className="border-t border-slate-100">
-                <td className="py-4 font-mono font-semibold">{affiliate.code}</td>
+                <td className="py-4 font-mono font-medium">{affiliate.code}</td>
                 <td>{affiliate.displayName}</td>
                 <td>{affiliate.email ?? "—"}</td>
                 <td>{affiliate.commissionBps === null ? "Attribution only" : `${affiliate.commissionBps / 100}%`}</td>
@@ -291,11 +291,11 @@ export function MarketingManager({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="text-xs font-semibold text-slate-500">{label}{children}</label>;
+  return <label className="text-xs font-medium text-slate-500">{label}{children}</label>;
 }
 
 const inputClass = "mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-[#0064E0]";
-const buttonClass = "mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white disabled:opacity-50";
+const buttonClass = "mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-medium text-white disabled:opacity-50";
 function statusClass(active: boolean) {
-  return `rounded-full px-3 py-1.5 text-xs font-semibold ${active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`;
+  return `rounded-full px-3 py-1.5 text-xs font-medium ${active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`;
 }
