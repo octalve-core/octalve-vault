@@ -4,7 +4,6 @@ import test from "node:test";
 
 const STATUS = "src/features/admin/shared/admin-action-status.tsx";
 const DOWNLOADS = "src/features/admin/downloads/downloads-table.tsx";
-const REVOKE = "src/features/admin/downloads/revoke-grant-button.tsx";
 const REFUNDS = "src/features/admin/refunds/refund-panel.tsx";
 
 function source(file: string) {
