@@ -101,16 +101,19 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             </Link>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setMobileOpen((value) => !value)}
-            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-[#000A16] shadow-sm transition hover:border-[#0A84FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/40 xl:hidden"
-            aria-expanded={mobileOpen}
-            aria-controls="octalve-vault-mobile-menu"
-            aria-label="Toggle navigation menu"
-          >
-            {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
-          </button>
+          <div className="flex shrink-0 items-center gap-2 xl:hidden">
+            <CartNavAction locale={locale} />
+            <button
+              type="button"
+              onClick={() => setMobileOpen((value) => !value)}
+              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-[#000A16] shadow-sm transition hover:border-[#0A84FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/40 xl:hidden"
+              aria-expanded={mobileOpen}
+              aria-controls="octalve-vault-mobile-menu"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+            </button>
+          </div>
         </div>
       </div>
 
