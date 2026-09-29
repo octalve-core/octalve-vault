@@ -1,5 +1,6 @@
+import Link from "next/link";
+
 import { hasPermission } from "@/domain/permissions";
-import { ProductCreateForm } from "@/features/admin/products/product-create-form";
 import { ProductIndexControls } from "@/features/admin/products/product-index-controls";
 import { ProductList } from "@/features/admin/products/product-list";
 import { AdminPageHeader } from "@/features/admin/shared/admin-page-header";
@@ -44,7 +45,14 @@ export default async function AdminProductsPage({
         title="Products"
         description="Search, filter and manage localized product copy, currency-specific prices and private versioned assets."
         action={
-          hasPermission(user.role, "product.write") ? <ProductCreateForm /> : undefined
+          hasPermission(user.role, "product.write") ? (
+            <Link
+              href="/admin/products/new"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-medium text-white transition hover:bg-[#0064E0]"
+            >
+              New product
+            </Link>
+          ) : undefined
         }
       />
       <div className="mt-7 space-y-5">
