@@ -43,25 +43,38 @@ test("download revoke table action is a visible semantic button with one in-flig
   );
 });
 
-test("standalone revoke keeps its current confirmation for PS1-04 but replaces alert-only result UX", () => {
-  const value = source(REVOKE);
+test("standalone revoke preserves PS1-03 feedback while PS1-04 uses the shared confirmation dialog", () => {
+  const source = readFileSync(
+    "src/features/admin/downloads/revoke-grant-button.tsx",
+    "utf8",
+  );
+
+  assert.match(source, /type="button"/);
+  assert.match(source, /disabled=\{busy\}/);
+  assert.match(source, /aria-busy=\{busy\}/);
+  assert.match(source, /if \(busy\) return;/);
+  assert.match(source, /<AdminActionStatus feedback=\{feedback\} \/>/);
 
   assert.match(
-    value,
-    /confirm\("Revoke this customer's future download access\?"\)/,
+    source,
+    /import \{ ConfirmActionDialog \} from "@\/features\/admin\/shared\/confirm-action-dialog";/,
   );
-  assert.match(value, /disabled=\{busy\}/);
-  assert.match(value, /aria-busy=\{busy\}/);
-  assert.match(value, /busy \? "Revoking\.\.\." : "Revoke"/);
-  assert.match(value, /<AdminActionStatus feedback=\{feedback\}/);
-  assert.doesNotMatch(value, /alert\(/);
-
   assert.match(
-    value,
-    /fetch\(`\/api\/admin\/downloads\/\$\{grantId\}\/revoke`, \{\s*method: "POST",?\s*\}\)/s,
+    source,
+    /const \[confirmOpen, setConfirmOpen\] = useState\(false\);/,
   );
+  assert.match(
+    source,
+    /onClick=\{\(\) => setConfirmOpen\(true\)\}/,
+  );
+  assert.match(source, /open=\{confirmOpen\}/);
+  assert.match(source, /confirmLabel="Revoke access"/);
+  assert.match(source, /await revoke\(\)/);
+
+  assert.doesNotMatch(source, /\bconfirm\(/);
+  assert.doesNotMatch(source, /\bwindow\.confirm\(/);
+  assert.doesNotMatch(source, /\balert\(/);
 });
-
 test("refund Sync is buttonized and both Sync and initiation prevent duplicate submission with visible feedback", () => {
   const value = source(REFUNDS);
 

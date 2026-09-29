@@ -6,6 +6,7 @@ import {
   AdminActionStatus,
   type AdminActionFeedback,
 } from "@/features/admin/shared/admin-action-status";
+import { ConfirmActionDialog } from "@/features/admin/shared/confirm-action-dialog";
 
 type Order = {
   id: string;
@@ -40,6 +41,7 @@ export function RefundPanel({
   const router = useRouter();
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingRefundForm, setPendingRefundForm] = useState<FormData | null>(null);
   const [feedback, setFeedback] = useState<AdminActionFeedback>({
     state: "idle",
     message: null,
@@ -80,6 +82,22 @@ export function RefundPanel({
     } finally {
       setSyncingId(null);
     }
+  }
+
+  function requestRefund(form: FormData) {
+    if (submitting) return;
+
+    const amountMajor = Number(form.get("amountMajor"));
+
+    if (!Number.isFinite(amountMajor) || amountMajor <= 0) {
+      setFeedback({
+        state: "error",
+        message: "Enter a positive refund amount.",
+      });
+      return;
+    }
+
+    setPendingRefundForm(form);
   }
 
   async function submit(form: FormData) {
@@ -191,7 +209,7 @@ export function RefundPanel({
 
         {canCreate ? (
           <form
-            action={submit}
+            action={requestRefund}
             className="h-fit rounded-[28px] border border-slate-200 bg-white p-6"
           >
             <h2 className="font-medium text-slate-950">Initiate refund</h2>
@@ -243,6 +261,22 @@ export function RefundPanel({
           </form>
         ) : null}
       </div>
+
+      <ConfirmActionDialog
+        open={pendingRefundForm !== null}
+        title="Initiate provider refund?"
+        description="This sends a refund request to the configured payment provider. Confirm the amount and reason before continuing."
+        confirmLabel="Initiate refund"
+        pendingLabel="Submitting..."
+        pending={submitting}
+        onCancel={() => setPendingRefundForm(null)}
+        onConfirm={async () => {
+          const form = pendingRefundForm;
+          if (!form || submitting) return;
+          await submit(form);
+          setPendingRefundForm(null);
+        }}
+      />
     </div>
   );
 }

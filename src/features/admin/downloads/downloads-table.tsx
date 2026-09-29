@@ -6,6 +6,7 @@ import {
   AdminActionStatus,
   type AdminActionFeedback,
 } from "@/features/admin/shared/admin-action-status";
+import { ConfirmActionDialog } from "@/features/admin/shared/confirm-action-dialog";
 
 type Grant = {
   id: string;
@@ -31,6 +32,7 @@ type Grant = {
 export function DownloadsTable({ grants }: { grants: Grant[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [confirmGrantId, setConfirmGrantId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<AdminActionFeedback>({
     state: "idle",
     message: null,
@@ -130,7 +132,7 @@ export function DownloadsTable({ grants }: { grants: Grant[] }) {
                       type="button"
                       disabled={busy !== null}
                       aria-busy={busy === grant.id}
-                      onClick={() => void revoke(grant.id)}
+                      onClick={() => setConfirmGrantId(grant.id)}
                       className="inline-flex min-w-20 items-center justify-center rounded-full border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {busy === grant.id ? "Revoking..." : "Revoke"}
@@ -145,6 +147,21 @@ export function DownloadsTable({ grants }: { grants: Grant[] }) {
       <AdminActionStatus
         feedback={feedback}
         className="mx-5 mb-5"
+      />
+      <ConfirmActionDialog
+        open={confirmGrantId !== null}
+        title="Revoke download access?"
+        description="This prevents future downloads for this customer. Files already downloaded cannot be recalled."
+        confirmLabel="Revoke access"
+        pendingLabel="Revoking..."
+        pending={busy !== null}
+        onCancel={() => setConfirmGrantId(null)}
+        onConfirm={async () => {
+          const id = confirmGrantId;
+          if (!id || busy !== null) return;
+          await revoke(id);
+          setConfirmGrantId(null);
+        }}
       />
     </div>
   );
