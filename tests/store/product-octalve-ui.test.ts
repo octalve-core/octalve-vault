@@ -23,6 +23,8 @@ const product: PublicProduct = {
   category: "Strategy",
   imagePath: "/products/vp001.png",
   featured: true,
+  status: "ACTIVE",
+  purchasable: true,
   title: "Localized Alpha",
   shortDescription: "Short localized description",
   description: "Full localized description",

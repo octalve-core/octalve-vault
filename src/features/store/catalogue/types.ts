@@ -1,4 +1,4 @@
-import type { CurrencyCode } from "@/domain/constants";
+import type { CurrencyCode, ProductStatus } from "@/domain/constants";
 
 export type PublicProduct = {
   id: string;
@@ -6,6 +6,8 @@ export type PublicProduct = {
   category: string;
   imagePath: string | null;
   featured: boolean;
+  status: ProductStatus;
+  purchasable: boolean;
   title: string;
   shortDescription: string;
   description: string | null;

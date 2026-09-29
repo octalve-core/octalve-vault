@@ -28,6 +28,8 @@ function toPublicProduct(
     category: product.category,
     imagePath: product.imagePath,
     featured: product.featured,
+    status: product.status,
+    purchasable: product.status === "ACTIVE" && product.assets.length > 0,
     title: translation.title,
     shortDescription: translation.shortDescription,
     description: translation.description,
@@ -40,12 +42,15 @@ function toPublicProduct(
 async function queryProducts() {
   return prisma.product.findMany({
     where: {
-      status: "ACTIVE",
-      assets: { some: { status: "PUBLISHED" } },
+      OR: [
+        { status: "COMING_SOON" },
+        { status: "ACTIVE", assets: { some: { status: "PUBLISHED" } } },
+      ],
     },
     include: {
       translations: true,
       prices: { where: { isActive: true } },
+      assets: { where: { status: "PUBLISHED" }, select: { id: true }, take: 1 },
     },
     orderBy: [{ featured: "desc" }, { createdAt: "asc" }],
   });
@@ -60,10 +65,16 @@ export async function getPublicProductBySlug(locale: Locale, slug: string): Prom
   const product = await prisma.product.findFirst({
     where: {
       slug,
-      status: "ACTIVE",
-      assets: { some: { status: "PUBLISHED" } },
+      OR: [
+        { status: "COMING_SOON" },
+        { status: "ACTIVE", assets: { some: { status: "PUBLISHED" } } },
+      ],
     },
-    include: { translations: true, prices: { where: { isActive: true } } },
+    include: {
+      translations: true,
+      prices: { where: { isActive: true } },
+      assets: { where: { status: "PUBLISHED" }, select: { id: true }, take: 1 },
+    },
   });
   if (!product) return null;
   return toPublicProduct(product as Awaited<ReturnType<typeof queryProducts>>[number], locale);

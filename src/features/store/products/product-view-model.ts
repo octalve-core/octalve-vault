@@ -1,4 +1,4 @@
-import type { CurrencyCode, Locale } from "../../../domain/constants.ts";
+import type { CurrencyCode, Locale, ProductStatus } from "../../../domain/constants.ts";
 import { formatMoney } from "../../../domain/money.ts";
 import type { PublicProduct } from "../catalogue/types.ts";
 
@@ -7,6 +7,7 @@ export type ProductViewModel = {
   slug: string;
   category: string;
   featured: boolean;
+  status: ProductStatus;
   title: string;
   shortDescription: string;
   description: string;
@@ -25,20 +26,22 @@ export function toProductViewModel(
   locale: Locale,
 ): ProductViewModel {
   const amountMinor = product.prices[currency];
-  const purchaseAvailable = amountMinor !== undefined;
+  const priceAvailable = amountMinor !== undefined;
+  const purchaseAvailable = product.purchasable && priceAvailable;
 
   return {
     id: product.id,
     slug: product.slug,
     category: product.category,
     featured: product.featured,
+    status: product.status,
     title: product.title,
     shortDescription: product.shortDescription,
     description: product.description ?? product.shortDescription,
     imagePath: product.imagePath ?? "/brand/vault-logo.png",
     currency,
     amountMinor: amountMinor ?? null,
-    formattedPrice: purchaseAvailable ? formatMoney(amountMinor, currency, locale) : null,
+    formattedPrice: priceAvailable ? formatMoney(amountMinor, currency, locale) : null,
     purchaseAvailable,
     businessBenefits: product.businessBenefits,
     productivityBenefits: product.productivityBenefits,
