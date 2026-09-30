@@ -1,16 +1,10 @@
 import Link from "next/link";
-import {
-  Boxes,
-  CircleCheckBig,
-  Clock3,
-  TriangleAlert,
-} from "lucide-react";
 
 import { hasPermission } from "@/domain/permissions";
 import { ProductIndexControls } from "@/features/admin/products/product-index-controls";
 import { ProductList } from "@/features/admin/products/product-list";
+import { ProductSummary } from "@/features/admin/products/product-summary";
 import { AdminPageHeader } from "@/features/admin/shared/admin-page-header";
-import { AdminSummaryGrid } from "@/features/admin/shared/admin-summary-grid";
 import { toAdminUrlSearchParams } from "@/features/admin/shared/admin-search-params";
 import { parseProductIndexParams } from "@/server/admin/products-index";
 import {
@@ -59,48 +53,11 @@ export default async function AdminProductsPage({
       />
 
       <div className="mt-7 space-y-5">
-        <AdminSummaryGrid
-          items={[
-            {
-              label: "Total products",
-              value: summary.total,
-              helper: "All lifecycle states",
-              context: "ALL",
-              tone: "blue",
-              icon: Boxes,
-            },
-            {
-              label: "Ready to sell",
-              value: summary.ready,
-              helper: "Active, published and priced",
-              context: "READY",
-              tone: "emerald",
-              icon: CircleCheckBig,
-            },
-            {
-              label: "Coming Soon",
-              value: summary.comingSoon,
-              helper: "Public previews not yet purchasable",
-              context: "PUBLIC",
-              tone: "violet",
-              icon: Clock3,
-            },
-            {
-              label: "Needs attention",
-              value: summary.needsAttention,
-              helper: "Draft or active but not ready",
-              context: "ACTION",
-              tone: "amber",
-              icon: TriangleAlert,
-            },
-          ]}
-        />
-
+        <ProductSummary summary={summary} />
         <ProductIndexControls
           input={input}
           categories={categories}
         />
-
         <ProductList
           result={result}
           queryString={params.toString()}
