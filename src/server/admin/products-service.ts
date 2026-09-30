@@ -6,6 +6,7 @@ import { prisma } from "../../lib/prisma";
 import { writeAdminAudit } from "./audit";
 import {
   buildProductOrderBy,
+  buildProductReadyWhere,
   buildProductWhere,
   productIndexActiveFilters,
   productIndexWindow,
@@ -89,6 +90,43 @@ export async function listAdminProductCategories(): Promise<string[]> {
     orderBy: { category: "asc" },
   });
   return rows.map((row) => row.category.trim()).filter(Boolean);
+}
+
+export type AdminProductSummary = {
+  total: number;
+  ready: number;
+  comingSoon: number;
+  needsAttention: number;
+};
+
+export async function getAdminProductSummary(): Promise<AdminProductSummary> {
+  const readyWhere = buildProductReadyWhere();
+
+  const [total, ready, comingSoon, needsAttention] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.count({ where: readyWhere }),
+    prisma.product.count({ where: { status: "COMING_SOON" } }),
+    prisma.product.count({
+      where: {
+        OR: [
+          { status: "DRAFT" },
+          {
+            AND: [
+              { status: "ACTIVE" },
+              { NOT: readyWhere },
+            ],
+          },
+        ],
+      },
+    }),
+  ]);
+
+  return {
+    total,
+    ready,
+    comingSoon,
+    needsAttention,
+  };
 }
 
 export async function getAdminProduct(id: string) {

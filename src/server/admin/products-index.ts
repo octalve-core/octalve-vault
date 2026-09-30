@@ -24,8 +24,8 @@ export const PRODUCT_INDEX_SORTS = [
   "title",
   "status",
 ] as const;
-export type ProductIndexSort = (typeof PRODUCT_INDEX_SORTS)[number];
 
+export type ProductIndexSort = (typeof PRODUCT_INDEX_SORTS)[number];
 export type ProductReadinessFilter = "ready" | "not-ready";
 export type ProductAssetFilter = "published" | "missing";
 
@@ -73,13 +73,23 @@ function optionalBoolean(value: string | null): boolean | undefined {
   return invalid("Invalid featured filter.");
 }
 
-export function parseProductIndexParams(params: URLSearchParams): ProductIndexInput {
+export function parseProductIndexParams(
+  params: URLSearchParams,
+): ProductIndexInput {
   return {
     query: normalizeSearchText(params.get("q")),
     page: parsePage(params.get("page")),
     pageSize: parsePageSize(params.get("pageSize")),
-    sort: parseSort(params.get("sort"), PRODUCT_INDEX_SORTS, "recently-updated"),
-    status: optionalEnum(params.get("status"), PRODUCT_STATUSES, "Invalid product status filter."),
+    sort: parseSort(
+      params.get("sort"),
+      PRODUCT_INDEX_SORTS,
+      "recently-updated",
+    ),
+    status: optionalEnum(
+      params.get("status"),
+      PRODUCT_STATUSES,
+      "Invalid product status filter.",
+    ),
     category: normalizeSearchText(params.get("category")) || undefined,
     featured: optionalBoolean(params.get("featured")),
     readiness: optionalEnum(
@@ -92,21 +102,48 @@ export function parseProductIndexParams(params: URLSearchParams): ProductIndexIn
       ["published", "missing"] as const,
       "Invalid product asset filter.",
     ),
-    currency: optionalEnum(params.get("currency"), CURRENCIES, "Invalid currency filter."),
-    created: parseDateRange(params.get("createdFrom"), params.get("createdTo")),
-    updated: parseDateRange(params.get("updatedFrom"), params.get("updatedTo")),
+    currency: optionalEnum(
+      params.get("currency"),
+      CURRENCIES,
+      "Invalid currency filter.",
+    ),
+    created: parseDateRange(
+      params.get("createdFrom"),
+      params.get("createdTo"),
+    ),
+    updated: parseDateRange(
+      params.get("updatedFrom"),
+      params.get("updatedTo"),
+    ),
   };
 }
 
-function rangeFilter(range: ParsedDateRange): { gte?: Date; lt?: Date } | undefined {
+function rangeFilter(
+  range: ParsedDateRange,
+): { gte?: Date; lt?: Date } | undefined {
   if (!range.from && !range.toExclusive) return undefined;
+
   return {
     ...(range.from ? { gte: range.from } : {}),
     ...(range.toExclusive ? { lt: range.toExclusive } : {}),
   };
 }
 
-export function buildProductWhere(input: ProductIndexInput): Prisma.ProductWhereInput {
+export function buildProductReadyWhere(
+  currency?: CurrencyCode,
+): Prisma.ProductWhereInput {
+  return {
+    status: "ACTIVE",
+    assets: { some: { status: "PUBLISHED" } },
+    prices: currency
+      ? { some: { currency, isActive: true } }
+      : { some: { isActive: true } },
+  };
+}
+
+export function buildProductWhere(
+  input: ProductIndexInput,
+): Prisma.ProductWhereInput {
   const clauses: Prisma.ProductWhereInput[] = [];
 
   if (input.query) {
@@ -116,7 +153,12 @@ export function buildProductWhere(input: ProductIndexInput): Prisma.ProductWhere
         { category: { contains: input.query, mode: "insensitive" } },
         {
           translations: {
-            some: { title: { contains: input.query, mode: "insensitive" } },
+            some: {
+              title: {
+                contains: input.query,
+                mode: "insensitive",
+              },
+            },
           },
         },
       ],
@@ -124,36 +166,45 @@ export function buildProductWhere(input: ProductIndexInput): Prisma.ProductWhere
   }
 
   if (input.status) clauses.push({ status: input.status });
+
   if (input.category) {
-    clauses.push({ category: { equals: input.category, mode: "insensitive" } });
+    clauses.push({
+      category: { equals: input.category, mode: "insensitive" },
+    });
   }
-  if (input.featured !== undefined) clauses.push({ featured: input.featured });
 
-  const ready: Prisma.ProductWhereInput = {
-    status: "ACTIVE",
-    assets: { some: { status: "PUBLISHED" } },
-    prices: input.currency
-      ? { some: { currency: input.currency, isActive: true } }
-      : { some: { isActive: true } },
-  };
+  if (input.featured !== undefined) {
+    clauses.push({ featured: input.featured });
+  }
 
+  const ready = buildProductReadyWhere(input.currency);
   if (input.readiness === "ready") clauses.push(ready);
   if (input.readiness === "not-ready") clauses.push({ NOT: ready });
 
   if (input.asset === "published") {
-    clauses.push({ assets: { some: { status: "PUBLISHED" } } });
+    clauses.push({
+      assets: { some: { status: "PUBLISHED" } },
+    });
   } else if (input.asset === "missing") {
-    clauses.push({ assets: { none: { status: "PUBLISHED" } } });
+    clauses.push({
+      assets: { none: { status: "PUBLISHED" } },
+    });
   }
 
   if (input.currency) {
     clauses.push({
-      prices: { some: { currency: input.currency, isActive: true } },
+      prices: {
+        some: {
+          currency: input.currency,
+          isActive: true,
+        },
+      },
     });
   }
 
   const createdAt = rangeFilter(input.created);
   const updatedAt = rangeFilter(input.updated);
+
   if (createdAt) clauses.push({ createdAt });
   if (updatedAt) clauses.push({ updatedAt });
 
@@ -176,7 +227,9 @@ export function buildProductOrderBy(
   }
 }
 
-export function productIndexWindow(input: ProductIndexInput): {
+export function productIndexWindow(
+  input: ProductIndexInput,
+): {
   skip: number;
   take: number;
 } {
@@ -194,9 +247,31 @@ export function productIndexActiveFilters(
   input: ProductIndexInput,
 ): ProductIndexActiveFilter[] {
   const filters: ProductIndexActiveFilter[] = [];
-  if (input.query) filters.push({ key: "query", label: "Search", value: input.query });
-  if (input.status) filters.push({ key: "status", label: "Status", value: input.status });
-  if (input.category) filters.push({ key: "category", label: "Category", value: input.category });
+
+  if (input.query) {
+    filters.push({
+      key: "query",
+      label: "Search",
+      value: input.query,
+    });
+  }
+
+  if (input.status) {
+    filters.push({
+      key: "status",
+      label: "Status",
+      value: input.status,
+    });
+  }
+
+  if (input.category) {
+    filters.push({
+      key: "category",
+      label: "Category",
+      value: input.category,
+    });
+  }
+
   if (input.featured !== undefined) {
     filters.push({
       key: "featured",
@@ -204,34 +279,66 @@ export function productIndexActiveFilters(
       value: input.featured ? "Yes" : "No",
     });
   }
+
   if (input.readiness) {
-    filters.push({ key: "readiness", label: "Readiness", value: input.readiness });
+    filters.push({
+      key: "readiness",
+      label: "Readiness",
+      value: input.readiness,
+    });
   }
-  if (input.asset) filters.push({ key: "asset", label: "Asset", value: input.asset });
+
+  if (input.asset) {
+    filters.push({
+      key: "asset",
+      label: "Asset",
+      value: input.asset,
+    });
+  }
+
   if (input.currency) {
-    filters.push({ key: "currency", label: "Currency", value: input.currency });
+    filters.push({
+      key: "currency",
+      label: "Currency",
+      value: input.currency,
+    });
   }
+
   if (input.created.from || input.created.toExclusive) {
     filters.push({
       key: "created",
       label: "Created",
-      value: `${input.created.from ? dateOnly(input.created.from) : "…"} – ${
+      value: `${
+        input.created.from ? dateOnly(input.created.from) : "…"
+      } – ${
         input.created.toExclusive
-          ? dateOnly(new Date(input.created.toExclusive.getTime() - 86400000))
+          ? dateOnly(
+              new Date(
+                input.created.toExclusive.getTime() - 86400000,
+              ),
+            )
           : "…"
       }`,
     });
   }
+
   if (input.updated.from || input.updated.toExclusive) {
     filters.push({
       key: "updated",
       label: "Updated",
-      value: `${input.updated.from ? dateOnly(input.updated.from) : "…"} – ${
+      value: `${
+        input.updated.from ? dateOnly(input.updated.from) : "…"
+      } – ${
         input.updated.toExclusive
-          ? dateOnly(new Date(input.updated.toExclusive.getTime() - 86400000))
+          ? dateOnly(
+              new Date(
+                input.updated.toExclusive.getTime() - 86400000,
+              ),
+            )
           : "…"
       }`,
     });
   }
+
   return filters;
 }

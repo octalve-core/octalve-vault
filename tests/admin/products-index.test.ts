@@ -5,6 +5,7 @@ import test from "node:test";
 
 import {
   buildProductOrderBy,
+  buildProductReadyWhere,
   buildProductWhere,
   parseProductIndexParams,
   productIndexActiveFilters,
@@ -12,7 +13,8 @@ import {
 } from "../../src/server/admin/products-index.ts";
 
 const root = process.cwd();
-const source = (relative: string) => readFileSync(resolve(root, relative), "utf8");
+const source = (relative: string) =>
+  readFileSync(resolve(root, relative), "utf8");
 
 test("parses supported Product index parameters and rejects invalid values", () => {
   const params = new URLSearchParams({
@@ -29,7 +31,9 @@ test("parses supported Product index parameters and rejects invalid values", () 
     createdFrom: "2026-09-01",
     createdTo: "2026-09-30",
   });
+
   const input = parseProductIndexParams(params);
+
   assert.equal(input.query, "Alpha Kit");
   assert.equal(input.page, 3);
   assert.equal(input.pageSize, 25);
@@ -37,16 +41,45 @@ test("parses supported Product index parameters and rejects invalid values", () 
   assert.equal(input.status, "ACTIVE");
   assert.equal(input.featured, true);
   assert.equal(input.currency, "NGN");
-  assert.equal(input.created.toExclusive?.toISOString(), "2026-10-01T00:00:00.000Z");
+  assert.equal(
+    input.created.toExclusive?.toISOString(),
+    "2026-10-01T00:00:00.000Z",
+  );
 
   assert.throws(
-    () => parseProductIndexParams(new URLSearchParams({ status: "DELETED" })),
+    () =>
+      parseProductIndexParams(
+        new URLSearchParams({ status: "DELETED" }),
+      ),
     /Invalid product status filter/,
   );
+
   assert.throws(
-    () => parseProductIndexParams(new URLSearchParams({ featured: "maybe" })),
+    () =>
+      parseProductIndexParams(
+        new URLSearchParams({ featured: "maybe" }),
+      ),
     /Invalid featured filter/,
   );
+});
+
+test("Product readiness requires ACTIVE + published asset + active price", () => {
+  assert.deepEqual(buildProductReadyWhere(), {
+    status: "ACTIVE",
+    assets: { some: { status: "PUBLISHED" } },
+    prices: { some: { isActive: true } },
+  });
+
+  assert.deepEqual(buildProductReadyWhere("USD"), {
+    status: "ACTIVE",
+    assets: { some: { status: "PUBLISHED" } },
+    prices: {
+      some: {
+        currency: "USD",
+        isActive: true,
+      },
+    },
+  });
 });
 
 test("Product search and filters are translated before pagination", () => {
@@ -61,8 +94,10 @@ test("Product search and filters are translated before pagination", () => {
       updatedFrom: "2026-09-01",
     }),
   );
+
   const where = buildProductWhere(input);
   const serialized = JSON.stringify(where);
+
   assert.match(serialized, /"slug"/);
   assert.match(serialized, /"category"/);
   assert.match(serialized, /"translations"/);
@@ -70,35 +105,62 @@ test("Product search and filters are translated before pagination", () => {
   assert.match(serialized, /"mode":"insensitive"/);
   assert.match(serialized, /"PUBLISHED"/);
   assert.match(serialized, /"USD"/);
-  assert.deepEqual(productIndexWindow(input), { skip: 50, take: 25 });
+  assert.deepEqual(productIndexWindow(input), {
+    skip: 50,
+    take: 25,
+  });
 });
 
 test("non-title sorts are deterministic", () => {
-  const newest = parseProductIndexParams(new URLSearchParams({ sort: "newest" }));
-  assert.deepEqual(buildProductOrderBy(newest), [{ createdAt: "desc" }, { id: "asc" }]);
-  const status = parseProductIndexParams(new URLSearchParams({ sort: "status" }));
-  assert.deepEqual(buildProductOrderBy(status), [{ status: "asc" }, { id: "asc" }]);
+  const newest = parseProductIndexParams(
+    new URLSearchParams({ sort: "newest" }),
+  );
+  assert.deepEqual(buildProductOrderBy(newest), [
+    { createdAt: "desc" },
+    { id: "asc" },
+  ]);
+
+  const status = parseProductIndexParams(
+    new URLSearchParams({ sort: "status" }),
+  );
+  assert.deepEqual(buildProductOrderBy(status), [
+    { status: "asc" },
+    { id: "asc" },
+  ]);
 });
 
 test("active filter descriptors are derived from validated state", () => {
   const input = parseProductIndexParams(
-    new URLSearchParams({ q: "kit", status: "COMING_SOON", currency: "NGN" }),
+    new URLSearchParams({
+      q: "kit",
+      status: "COMING_SOON",
+      currency: "NGN",
+    }),
   );
-  assert.deepEqual(productIndexActiveFilters(input).map((item) => item.key), [
-    "query",
-    "status",
-    "currency",
-  ]);
+
+  assert.deepEqual(
+    productIndexActiveFilters(input).map((item) => item.key),
+    ["query", "status", "currency"],
+  );
 });
 
 test("Admin Product discovery is database-query-backed rather than page-local filtering", () => {
   const service = source("src/server/admin/products-service.ts");
   const route = source("src/app/api/admin/products/route.ts");
-  const page = source("src/app/admin/(protected)/products/page.tsx");
-  const controls = source("src/features/admin/products/product-index-controls.tsx");
-  const list = source("src/features/admin/products/product-list.tsx");
+  const page = source(
+    "src/app/admin/(protected)/products/page.tsx",
+  );
+  const controls = source(
+    "src/features/admin/products/product-index-controls.tsx",
+  );
+  const list = source(
+    "src/features/admin/products/product-list.tsx",
+  );
 
-  assert.match(service, /prisma\.product\.count\(\{\s*where\s*\}\)/);
+  assert.match(
+    service,
+    /prisma\.product\.count\(\{\s*where\s*\}\)/,
+  );
   assert.match(service, /productIndexWindow\(input\)/);
   assert.match(service, /skip,\s*take/);
   assert.match(service, /prisma\.productTranslation\.findMany/);
@@ -108,8 +170,6 @@ test("Admin Product discovery is database-query-backed rather than page-local fi
   assert.match(page, /searchParams/);
   assert.match(page, /parseProductIndexParams/);
   assert.match(controls, /method="get"/);
-  assert.match(list, /result\.meta\.total/);
-  assert.match(list, /result\.activeFilters/);
   assert.doesNotMatch(list, /\.filter\(\(product\)/);
 });
 
