@@ -31,20 +31,14 @@ type Grant = {
   };
 };
 
-export function DownloadsTable({
-  grants,
-}: {
-  grants: Grant[];
-}) {
+export function DownloadsTable({ grants }: { grants: Grant[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
-  const [confirmGrantId, setConfirmGrantId] =
-    useState<string | null>(null);
-  const [feedback, setFeedback] =
-    useState<AdminActionFeedback>({
-      state: "idle",
-      message: null,
-    });
+  const [confirmGrantId, setConfirmGrantId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<AdminActionFeedback>({
+    state: "idle",
+    message: null,
+  });
 
   async function revoke(id: string) {
     if (busy !== null) return;
@@ -55,12 +49,9 @@ export function DownloadsTable({
     });
 
     try {
-      const response = await fetch(
-        `/api/admin/downloads/${id}/revoke`,
-        {
-          method: "POST",
-        },
-      );
+      const response = await fetch(`/api/admin/downloads/${id}/revoke`, {
+        method: "POST",
+      });
 
       if (!response.ok) {
         throw new Error("Unable to revoke grant.");
@@ -75,9 +66,7 @@ export function DownloadsTable({
       setFeedback({
         state: "error",
         message:
-          caught instanceof Error
-            ? caught.message
-            : "Unable to revoke grant.",
+          caught instanceof Error ? caught.message : "Unable to revoke grant.",
       });
     } finally {
       setBusy(null);
@@ -108,8 +97,7 @@ export function DownloadsTable({
           <tbody className="divide-y divide-slate-100">
             {grants.map((grant) => {
               const state = grant.state;
-              const payment =
-                grant.orderItem.order.payments[0];
+              const payment = grant.orderItem.order.payments[0];
 
               return (
                 <tr key={grant.id}>
@@ -126,9 +114,7 @@ export function DownloadsTable({
                         : "No payment evidence"}
                     </p>
                   </td>
-                  <td className="px-5 py-5 text-slate-600">
-                    {grant.email}
-                  </td>
+                  <td className="px-5 py-5 text-slate-600">{grant.email}</td>
                   <td className="px-5 py-5 text-slate-600">
                     {grant.downloadCount}
                   </td>
@@ -151,14 +137,10 @@ export function DownloadsTable({
                         type="button"
                         disabled={busy !== null}
                         aria-busy={busy === grant.id}
-                        onClick={() =>
-                          setConfirmGrantId(grant.id)
-                        }
+                        onClick={() => setConfirmGrantId(grant.id)}
                         className="inline-flex min-w-20 items-center justify-center rounded-full border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {busy === grant.id
-                          ? "Revoking..."
-                          : "Revoke"}
+                        {busy === grant.id ? "Revoking..." : "Revoke"}
                       </button>
                     ) : null}
                   </td>
@@ -169,10 +151,7 @@ export function DownloadsTable({
         </table>
       </div>
 
-      <AdminActionStatus
-        feedback={feedback}
-        className="mx-5 mb-5"
-      />
+      <AdminActionStatus feedback={feedback} className="mx-5 mb-5" />
       <ConfirmActionDialog
         open={confirmGrantId !== null}
         title="Revoke download access?"

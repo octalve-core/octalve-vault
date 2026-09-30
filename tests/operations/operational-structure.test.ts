@@ -211,40 +211,68 @@ test("refund initiation and refresh enforce environment before provider and loca
 });
 
 test("Admin business metrics are LIVE-backed while detailed payment history remains complete", () => {
-  const source = readFileSync(
+  const operations = readFileSync(
     "src/server/admin/operations-service.ts",
     "utf8",
   );
+  const customersIndex = readFileSync(
+    "src/server/admin/customers-index.ts",
+    "utf8",
+  );
+  const downloadsService = readFileSync(
+    "src/server/admin/downloads-service.ts",
+    "utf8",
+  );
+  const paymentsService = readFileSync(
+    "src/server/admin/payments-service.ts",
+    "utf8",
+  );
 
-  assert.match(source, /environment:\s*"LIVE"/);
+  assert.match(operations, /environment:\s*"LIVE"/);
   assert.match(
-    source,
+    operations,
     /status:\s*"SUCCEEDED"|status:\s*\{\s*in:\s*\[[^\]]*"SUCCEEDED"/,
   );
-  assert.match(
-    source,
-    /listAdminCustomers[\s\S]*environment:\s*"LIVE"/,
-  );
-  assert.match(source, /listAdminDownloads[\s\S]*payments/);
-  assert.match(source, /listAdminRefundableOrders/);
+  assert.match(operations, /listAdminRefundableOrders/);
 
-  const paymentsStart = source.indexOf(
+  assert.match(
+    customersIndex,
+    /environment:\s*"LIVE"/,
+  );
+  assert.match(
+    customersIndex,
+    /status:\s*"SUCCEEDED"/,
+  );
+
+  assert.match(downloadsService, /payments/);
+  assert.match(
+    downloadsService,
+    /environment:\s*"LIVE"/,
+  );
+
+  const paymentsStart = paymentsService.indexOf(
     "export async function listAdminPayments",
   );
-  const refundableStart = source.indexOf(
-    "export async function listAdminRefundableOrders",
+  const summaryStart = paymentsService.indexOf(
+    "export async function getAdminPaymentSummary",
   );
 
   assert.ok(paymentsStart >= 0);
-  assert.ok(refundableStart > paymentsStart);
+  assert.ok(summaryStart > paymentsStart);
 
-  const paymentsSource = source.slice(
+  const paymentsHistorySource = paymentsService.slice(
     paymentsStart,
-    refundableStart,
+    summaryStart,
   );
+  const paymentsSummarySource =
+    paymentsService.slice(summaryStart);
 
   assert.doesNotMatch(
-    paymentsSource,
+    paymentsHistorySource,
+    /environment:\s*"LIVE"/,
+  );
+  assert.match(
+    paymentsSummarySource,
     /environment:\s*"LIVE"/,
   );
 });
