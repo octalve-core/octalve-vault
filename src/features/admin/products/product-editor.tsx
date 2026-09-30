@@ -1,4 +1,5 @@
 "use client";
+import { adminNotice } from "@/features/admin/shared/admin-notification-provider";
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -32,82 +33,235 @@ export function ProductEditor({ product, canEditProduct, canEditPrice, canPublis
   const byLocale = useMemo(() => new Map(product.translations.map((item) => [item.locale, item])), [product.translations]);
   const byCurrency = useMemo(() => new Map(product.prices.map((item) => [item.currency, item])), [product.prices]);
 
-  async function request(url: string, method: string, body?: unknown) {
+  async function request(
+    url: string,
+    method: string,
+    body?: unknown,
+    notice: {
+      pendingTitle: string;
+      pendingMessage?: string;
+      successTitle: string;
+      successMessage?: string;
+      noticeId?: string;
+    } = {
+      pendingTitle: "Saving changes",
+      successTitle: "Changes saved",
+    },
+  ) {
+    const noticeId = adminNotice.pending(
+      {
+        title: notice.pendingTitle,
+        message: notice.pendingMessage,
+      },
+      notice.noticeId,
+    );
     setMessage(null);
-    const response = await fetch(url, {
-      method,
-      headers: body ? { "content-type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const data = await response.json() as { error?: string };
-    if (!response.ok) throw new Error(data.error || "Request failed.");
-    setMessage("Saved successfully.");
-    router.refresh();
-    return data;
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: body ? { "content-type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Request failed.");
+      }
+
+      const successMessage = notice.successMessage ?? notice.successTitle;
+      setMessage(successMessage);
+      adminNotice.success(noticeId, {
+        title: notice.successTitle,
+        message: notice.successMessage,
+      });
+      router.refresh();
+      return data;
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Request failed.";
+      setMessage(message);
+      adminNotice.error(noticeId, {
+        title: "Action failed",
+        message,
+      });
+      throw caught;
+    }
   }
 
   async function updateCore(form: FormData) {
     if (!canEditProduct) return;
+    const nextStatus = String(form.get("status") ?? product.status);
     try {
-      await request(`/api/admin/products/${product.id}`, "PATCH", {
-        slug: form.get("slug"),
-        category: form.get("category"),
-        status: form.get("status"),
-        featured: form.get("featured") === "on",
-      });
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to save.");
+      await request(
+        `/api/admin/products/${product.id}`,
+        "PATCH",
+        {
+          slug: form.get("slug"),
+          category: form.get("category"),
+          status: nextStatus,
+          featured: form.get("featured") === "on",
+        },
+        {
+          pendingTitle:
+            nextStatus === "ACTIVE" ? "Activating product" : "Saving product",
+          pendingMessage:
+            nextStatus === "ACTIVE"
+              ? "Validating readiness and saving the lifecycle state..."
+              : "Saving the latest product settings...",
+          successTitle:
+            nextStatus === "ACTIVE" ? "Product activated" : "Product saved",
+          successMessage:
+            "The latest server-confirmed product state is now displayed.",
+        },
+      );
+    } catch {
+      // request() already reports the safe server error.
     }
   }
 
   async function updateTranslation(form: FormData) {
     if (!canEditProduct) return;
+    const locale = String(form.get("locale") ?? "").toUpperCase();
     try {
-      await request(`/api/admin/products/${product.id}/translations`, "PUT", {
-        locale: form.get("locale"),
-        title: form.get("title"),
-        shortDescription: form.get("shortDescription"),
-        description: form.get("description"),
-      });
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to save translation.");
+      await request(
+        `/api/admin/products/${product.id}/translations`,
+        "PUT",
+        {
+          locale: form.get("locale"),
+          title: form.get("title"),
+          shortDescription: form.get("shortDescription"),
+          description: form.get("description"),
+        },
+        {
+          pendingTitle: "Saving translation",
+          pendingMessage: locale ? `Updating ${locale} product copy...` : undefined,
+          successTitle: "Translation saved",
+          successMessage: locale ? `${locale} product copy is up to date.` : undefined,
+        },
+      );
+    } catch {
+      // request() already reports the safe server error.
     }
   }
 
   async function updatePrice(form: FormData) {
     if (!canEditPrice) return;
+    const currency = String(form.get("currency") ?? "");
     try {
       const amountMajor = Number(form.get("amountMajor"));
-      if (!Number.isFinite(amountMajor) || amountMajor < 0) throw new Error("Enter a valid price.");
-      await request(`/api/admin/products/${product.id}/prices`, "PUT", {
-        currency: form.get("currency"),
-        amountMinor: Math.round(amountMajor * 100),
-        isActive: form.get("isActive") === "on",
-      });
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to save price.");
+      if (!Number.isFinite(amountMajor) || amountMajor < 0) {
+        throw new Error("Enter a valid price.");
+      }
+      await request(
+        `/api/admin/products/${product.id}/prices`,
+        "PUT",
+        {
+          currency,
+          amountMinor: Math.round(amountMajor * 100),
+          isActive: form.get("isActive") === "on",
+        },
+        {
+          pendingTitle: "Saving price",
+          pendingMessage: currency ? `Updating ${currency} pricing...` : undefined,
+          successTitle: "Price saved",
+          successMessage: currency ? `${currency} pricing is up to date.` : undefined,
+        },
+      );
+    } catch (caught) {
+      if (caught instanceof Error && caught.message === "Enter a valid price.") {
+        setMessage(caught.message);
+        const noticeId = adminNotice.pending({ title: "Saving price" });
+        adminNotice.error(noticeId, {
+          title: "Price not saved",
+          message: caught.message,
+        });
+      }
     }
   }
 
   async function upload(file: File | null) {
-    if (!file || !canEditProduct) return;
+    if (!file || !canEditProduct || uploading) return;
+
+    const noticeId = adminNotice.pending({
+      title: "Preparing secure upload",
+      message: "Authorizing a private product-file upload...",
+    });
     setUploading(true);
     setMessage(null);
+
     try {
-      if (!file.name.toLowerCase().endsWith(".zip")) throw new Error("Product files must be ZIP archives.");
-      const auth = await fetch(`/api/admin/products/${product.id}/assets/authorize`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ originalFilename: file.name, sizeBytes: file.size }),
+      if (!file.name.toLowerCase().endsWith(".zip")) {
+        throw new Error("Product files must be ZIP archives.");
+      }
+
+      const auth = await fetch(
+        `/api/admin/products/${product.id}/assets/authorize`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            originalFilename: file.name,
+            sizeBytes: file.size,
+          }),
+        },
+      );
+      const info = (await auth.json()) as {
+        assetId?: string;
+        uploadUrl?: string;
+        uploadHeaders?: Record<string, string>;
+        error?: string;
+      };
+      if (!auth.ok || !info.assetId || !info.uploadUrl) {
+        throw new Error(info.error || "Unable to authorize upload.");
+      }
+
+      adminNotice.pending(
+        {
+          title: "Uploading product file",
+          message: "Sending the ZIP directly to private storage...",
+        },
+        noticeId,
+      );
+
+      const put = await fetch(info.uploadUrl, {
+        method: "PUT",
+        headers: info.uploadHeaders,
+        body: file,
       });
-      const info = await auth.json() as { assetId?: string; uploadUrl?: string; uploadHeaders?: Record<string, string>; error?: string };
-      if (!auth.ok || !info.assetId || !info.uploadUrl) throw new Error(info.error || "Unable to authorize upload.");
-      const put = await fetch(info.uploadUrl, { method: "PUT", headers: info.uploadHeaders, body: file });
       if (!put.ok) throw new Error(`R2 upload failed (${put.status}).`);
-      await request(`/api/admin/assets/${info.assetId}/verify`, "POST");
-      setMessage("Upload verified. Publish it when you are ready to sell this version.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Upload failed.");
+
+      adminNotice.pending(
+        {
+          title: "Verifying uploaded file",
+          message: "Confirming the private object before it can be published...",
+        },
+        noticeId,
+      );
+
+      await request(
+        `/api/admin/assets/${info.assetId}/verify`,
+        "POST",
+        undefined,
+        {
+          noticeId,
+          pendingTitle: "Verifying uploaded file",
+          successTitle: "Upload verified",
+          successMessage:
+            "The file is verified and ready to publish when you choose.",
+        },
+      );
+      setMessage(
+        "Upload verified. Publish it when you are ready to sell this version.",
+      );
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Upload failed.";
+      setMessage(message);
+      adminNotice.error(noticeId, {
+        title: "Upload failed",
+        message,
+      });
     } finally {
       setUploading(false);
     }
@@ -115,10 +269,27 @@ export function ProductEditor({ product, canEditProduct, canEditPrice, canPublis
 
   async function publish(assetId: string) {
     if (!canPublish) return;
+
+    const noticeId = adminNotice.pending({
+      title: "Publishing asset",
+      message: "Making this verified version the active downloadable asset...",
+    });
+
     try {
-      await request(`/api/admin/assets/${assetId}/publish`, "POST");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to publish asset.");
+      await request(
+        `/api/admin/assets/${assetId}/publish`,
+        "POST",
+        undefined,
+        {
+          noticeId,
+          pendingTitle: "Publishing asset",
+          successTitle: "Asset published",
+          successMessage:
+            "The latest server-confirmed product readiness is now displayed.",
+        },
+      );
+    } catch {
+      // request() already reports the safe server error.
     }
   }
 

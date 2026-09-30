@@ -1,4 +1,5 @@
 "use client";
+import { adminNotice } from "@/features/admin/shared/admin-notification-provider";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,6 +44,11 @@ export function ProductCreatePageForm({ categories }: { categories: string[] }) 
   }
 
   async function submit(formData: FormData) {
+    const noticeId = adminNotice.pending({
+      title: "Creating product",
+      message: "Validating and creating the new draft product...",
+    });
+
     setBusy(true);
     setError(null);
     const normalizedCategory = normalizeProductCategory(category);
@@ -65,9 +71,16 @@ export function ProductCreatePageForm({ categories }: { categories: string[] }) 
       if (!response.ok || !data.product) {
         throw new Error(data.error || "Unable to create product.");
       }
+      adminNotice.success(noticeId, { title: "Product created", message: "The draft is ready for product setup." });
       router.push(`/admin/products/${data.product.id}`);
       router.refresh();
     } catch (caught) {
+      const noticeMessage =
+        caught instanceof Error ? caught.message : "Unable to create product.";
+      adminNotice.error(noticeId, {
+        title: "Product not created",
+        message: noticeMessage,
+      });
       setError(caught instanceof Error ? caught.message : "Unable to create product.");
     } finally {
       setBusy(false);
