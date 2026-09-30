@@ -1,24 +1,36 @@
-import { AdminPageHeader } from "@/features/admin/shared/admin-page-header";
+import { hasPermission } from "@/domain/permissions";
 import { PaymentsTable } from "@/features/admin/payments/payments-table";
 import { RefundPanel } from "@/features/admin/refunds/refund-panel";
-import { requireAdminPage } from "@/server/auth/admin-page";
+import { AdminIndexResults } from "@/features/admin/shared/admin-index-results";
+import { AdminPageHeader } from "@/features/admin/shared/admin-page-header";
+import { PaymentIndexControls } from "@/features/admin/shared/admin-resource-controls";
+import { PaymentSummary } from "@/features/admin/shared/admin-resource-summaries";
+import { toAdminUrlSearchParams } from "@/features/admin/shared/admin-search-params";
+import { listAdminRefundableOrders } from "@/server/admin/operations-service";
+import { parsePaymentIndexParams } from "@/server/admin/payments-index";
 import {
+  getAdminPaymentSummary,
   listAdminPayments,
-  listAdminRefundableOrders,
-} from "@/server/admin/operations-service";
+} from "@/server/admin/payments-service";
+import { requireAdminPage } from "@/server/auth/admin-page";
 import { listRefunds } from "@/server/refunds/refund-service";
-import { hasPermission } from "@/domain/permissions";
 
-export default async function AdminPaymentsPage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export default async function AdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
   const { user } = await requireAdminPage("payment.read");
-
-  const [payments, paidOrders, refunds] =
-    await Promise.all([
-      listAdminPayments(),
-      listAdminRefundableOrders(),
-      listRefunds(),
-    ]);
-
+  const params = toAdminUrlSearchParams(await searchParams);
+  const input = parsePaymentIndexParams(params);
+  const [result, summary, paidOrders, refunds] = await Promise.all([
+    listAdminPayments(input),
+    getAdminPaymentSummary(),
+    listAdminRefundableOrders(),
+    listRefunds(),
+  ]);
   const refundRows = refunds.map((refund) => ({
     id: refund.id,
     amount: refund.amount,
@@ -36,19 +48,14 @@ export default async function AdminPaymentsPage() {
         title="Payments & refunds"
         description="Provider attempts, verification state, provider references and real provider refund initiation."
       />
-
-      <div className="mt-7">
-        <PaymentsTable payments={payments} />
+      <div className="mt-7 space-y-5">
+        <PaymentSummary summary={summary} />
+        <PaymentIndexControls input={input} />
+        <AdminIndexResults basePath="/admin/payments" queryString={params.toString()} meta={result.meta} activeFilters={result.activeFilters} noun="payments">
+          <PaymentsTable payments={result.items} />
+        </AdminIndexResults>
       </div>
-
-      <RefundPanel
-        orders={paidOrders}
-        refunds={refundRows}
-        canCreate={hasPermission(
-          user.role,
-          "refund.create",
-        )}
-      />
+      <RefundPanel orders={paidOrders} refunds={refundRows} canCreate={hasPermission(user.role, "refund.create")} />
     </>
   );
 }

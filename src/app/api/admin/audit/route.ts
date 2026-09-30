@@ -1,6 +1,25 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAdminPermission } from "@/server/auth/admin-session";
+
 import { adminError } from "@/server/admin/http";
+import { parseAuditIndexParams } from "@/server/admin/audit-index";
+import { listAdminAuditLogs } from "@/server/admin/audit-query-service";
+import { requireAdminPermission } from "@/server/auth/admin-session";
+
 export const dynamic = "force-dynamic";
-export async function GET(request: Request) { try { await requireAdminPermission(request, "audit.read"); const logs = await prisma.adminAuditLog.findMany({ include: { actor: { select: { displayName: true, email: true } } }, orderBy: { createdAt: "desc" }, take: 300 }); return NextResponse.json({ logs }); } catch (error) { return adminError(error); } }
+
+export async function GET(request: Request) {
+  try {
+    await requireAdminPermission(request, "audit.read");
+    const input = parseAuditIndexParams(
+      new URL(request.url).searchParams,
+    );
+    const result = await listAdminAuditLogs(input);
+    return NextResponse.json({
+      logs: result.items,
+      meta: result.meta,
+      activeFilters: result.activeFilters,
+    });
+  } catch (error) {
+    return adminError(error);
+  }
+}

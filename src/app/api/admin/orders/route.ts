@@ -1,6 +1,25 @@
 import { NextResponse } from "next/server";
-import { requireAdminPermission } from "@/server/auth/admin-session";
+
 import { adminError } from "@/server/admin/http";
-import { listAdminOrders } from "@/server/admin/operations-service";
+import { parseOrderIndexParams } from "@/server/admin/orders-index";
+import { listAdminOrders } from "@/server/admin/orders-service";
+import { requireAdminPermission } from "@/server/auth/admin-session";
+
 export const dynamic = "force-dynamic";
-export async function GET(request: Request) { try { await requireAdminPermission(request, "order.read"); return NextResponse.json({ orders: await listAdminOrders() }); } catch (error) { return adminError(error); } }
+
+export async function GET(request: Request) {
+  try {
+    await requireAdminPermission(request, "order.read");
+    const input = parseOrderIndexParams(
+      new URL(request.url).searchParams,
+    );
+    const result = await listAdminOrders(input);
+    return NextResponse.json({
+      orders: result.items,
+      meta: result.meta,
+      activeFilters: result.activeFilters,
+    });
+  } catch (error) {
+    return adminError(error);
+  }
+}

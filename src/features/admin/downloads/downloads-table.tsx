@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
 import {
   AdminActionStatus,
   type AdminActionFeedback,
@@ -15,6 +16,7 @@ type Grant = {
   revokedAt: string | null;
   expiresAt: string | null;
   createdAt: string;
+  state: "REVOKED" | "EXPIRED" | "ACTIVE";
   orderItem: {
     productTitle: string;
     order: {
@@ -29,18 +31,23 @@ type Grant = {
   };
 };
 
-export function DownloadsTable({ grants }: { grants: Grant[] }) {
+export function DownloadsTable({
+  grants,
+}: {
+  grants: Grant[];
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
-  const [confirmGrantId, setConfirmGrantId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<AdminActionFeedback>({
-    state: "idle",
-    message: null,
-  });
+  const [confirmGrantId, setConfirmGrantId] =
+    useState<string | null>(null);
+  const [feedback, setFeedback] =
+    useState<AdminActionFeedback>({
+      state: "idle",
+      message: null,
+    });
 
   async function revoke(id: string) {
     if (busy !== null) return;
-
     setBusy(id);
     setFeedback({
       state: "pending",
@@ -48,9 +55,12 @@ export function DownloadsTable({ grants }: { grants: Grant[] }) {
     });
 
     try {
-      const response = await fetch(`/api/admin/downloads/${id}/revoke`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/admin/downloads/${id}/revoke`,
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
         throw new Error("Unable to revoke grant.");
@@ -96,54 +106,69 @@ export function DownloadsTable({ grants }: { grants: Grant[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {grants.map((grant) => (
-              <tr key={grant.id}>
-                <td className="px-5 py-5">
-                  <p className="font-medium text-slate-950">
-                    {grant.orderItem.productTitle}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {grant.orderItem.order.reference}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-slate-400">
-                    {grant.orderItem.order.payments[0]
-                      ? `${grant.orderItem.order.payments[0].provider} · ${grant.orderItem.order.payments[0].environment}`
-                      : "No settled payment"}
-                  </p>
-                </td>
-                <td className="px-5 py-5 text-slate-600">{grant.email}</td>
-                <td className="px-5 py-5 text-slate-600">
-                  {grant.downloadCount}
-                </td>
-                <td className="px-5 py-5">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      grant.revokedAt
-                        ? "bg-red-50 text-red-700"
-                        : "bg-emerald-50 text-emerald-700"
-                    }`}
-                  >
-                    {grant.revokedAt ? "REVOKED" : "ACTIVE"}
-                  </span>
-                </td>
-                <td className="px-5 py-5 text-right">
-                  {!grant.revokedAt ? (
-                    <button
-                      type="button"
-                      disabled={busy !== null}
-                      aria-busy={busy === grant.id}
-                      onClick={() => setConfirmGrantId(grant.id)}
-                      className="inline-flex min-w-20 items-center justify-center rounded-full border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            {grants.map((grant) => {
+              const state = grant.state;
+              const payment =
+                grant.orderItem.order.payments[0];
+
+              return (
+                <tr key={grant.id}>
+                  <td className="px-5 py-5">
+                    <p className="font-medium text-slate-950">
+                      {grant.orderItem.productTitle}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {grant.orderItem.order.reference}
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-slate-400">
+                      {payment
+                        ? `${payment.provider} · ${payment.environment} · ${payment.status}`
+                        : "No payment evidence"}
+                    </p>
+                  </td>
+                  <td className="px-5 py-5 text-slate-600">
+                    {grant.email}
+                  </td>
+                  <td className="px-5 py-5 text-slate-600">
+                    {grant.downloadCount}
+                  </td>
+                  <td className="px-5 py-5">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        state === "ACTIVE"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : state === "EXPIRED"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-red-50 text-red-700"
+                      }`}
                     >
-                      {busy === grant.id ? "Revoking..." : "Revoke"}
-                    </button>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
+                      {state}
+                    </span>
+                  </td>
+                  <td className="px-5 py-5 text-right">
+                    {state === "ACTIVE" ? (
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        aria-busy={busy === grant.id}
+                        onClick={() =>
+                          setConfirmGrantId(grant.id)
+                        }
+                        className="inline-flex min-w-20 items-center justify-center rounded-full border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {busy === grant.id
+                          ? "Revoking..."
+                          : "Revoke"}
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
       <AdminActionStatus
         feedback={feedback}
         className="mx-5 mb-5"

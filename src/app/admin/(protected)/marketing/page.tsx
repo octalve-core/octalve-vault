@@ -1,51 +1,41 @@
-import { AdminPageHeader } from "@/features/admin/shared/admin-page-header";
-import { MarketingManager } from "@/features/admin/marketing/marketing-manager";
 import { hasPermission } from "@/domain/permissions";
-import { listMarketingPromotions } from "@/server/admin/promotions-service";
+import { MarketingManager } from "@/features/admin/marketing/marketing-manager";
+import { AdminIndexResults } from "@/features/admin/shared/admin-index-results";
+import { AdminPageHeader } from "@/features/admin/shared/admin-page-header";
+import { MarketingIndexControls } from "@/features/admin/shared/admin-resource-controls";
+import { MarketingSummary } from "@/features/admin/shared/admin-resource-summaries";
+import { toAdminUrlSearchParams } from "@/features/admin/shared/admin-search-params";
+import { parseMarketingIndexParams } from "@/server/admin/marketing-index";
+import {
+  getAdminMarketingSummary,
+  listAdminMarketing,
+} from "@/server/admin/marketing-service";
 import { requireAdminPage } from "@/server/auth/admin-page";
 
-export default async function AdminMarketingPage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export default async function AdminMarketingPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
   const { user } = await requireAdminPage("marketing.read");
-  const { coupons, affiliates } = await listMarketingPromotions();
+  const params = toAdminUrlSearchParams(await searchParams);
+  const input = parseMarketingIndexParams(params);
+  const [result, summary] = await Promise.all([
+    listAdminMarketing(input),
+    getAdminMarketingSummary(),
+  ]);
 
   return (
     <>
-      <AdminPageHeader
-        eyebrow="Commerce"
-        title="Coupons & affiliates"
-        description="Manage server-authoritative promotion rules and affiliate attribution. Changes are audited and never alter browser-side price authority."
-      />
-      <div className="mt-7">
-        <MarketingManager
-          canWrite={hasPermission(user.role, "marketing.write")}
-          coupons={coupons.map((coupon) => ({
-            id: coupon.id,
-            code: coupon.code,
-            name: coupon.name,
-            discountType: coupon.discountType,
-            percentageBps: coupon.percentageBps,
-            fixedAmountMinor: coupon.fixedAmountMinor,
-            currency: coupon.currency,
-            minimumSubtotal: coupon.minimumSubtotal,
-            maxRedemptions: coupon.maxRedemptions,
-            perEmailLimit: coupon.perEmailLimit,
-            active: coupon.active,
-            startsAt: coupon.startsAt?.toISOString() ?? null,
-            endsAt: coupon.endsAt?.toISOString() ?? null,
-            productIds: coupon.products.map((item) => item.productId),
-            redemptionCount: coupon._count.redemptions,
-            orderCount: coupon._count.orders,
-          }))}
-          affiliates={affiliates.map((affiliate) => ({
-            id: affiliate.id,
-            code: affiliate.code,
-            displayName: affiliate.displayName,
-            email: affiliate.email,
-            commissionBps: affiliate.commissionBps,
-            active: affiliate.active,
-            orderCount: affiliate._count.orders,
-          }))}
-        />
+      <AdminPageHeader eyebrow="Commerce" title="Coupons & affiliates" description="Manage server-authoritative promotion rules and affiliate attribution. Changes remain audited." />
+      <div className="mt-7 space-y-5">
+        <MarketingSummary summary={summary} />
+        <MarketingIndexControls input={input} />
+        <AdminIndexResults basePath="/admin/marketing" queryString={params.toString()} meta={result.meta} activeFilters={result.activeFilters} noun={input.view}>
+          <MarketingManager view={input.view} items={result.items} canWrite={hasPermission(user.role, "marketing.write")} />
+        </AdminIndexResults>
       </div>
     </>
   );
