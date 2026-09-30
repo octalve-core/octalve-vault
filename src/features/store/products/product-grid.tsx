@@ -4,44 +4,13 @@ import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 
 import type { Locale } from "@/domain/constants";
-import type {
-  PublicCatalogueIndexInput,
-  PublicCatalogueSort,
-} from "@/features/store/catalogue/catalogue-index";
+import type { PublicCatalogueIndexInput } from "@/features/store/catalogue/catalogue-index";
 import { getMessages, translate } from "@/i18n/messages";
 import { localeHref } from "@/i18n/routing";
 import type { PublicProduct } from "../catalogue/types";
 import { useCart } from "../cart/use-cart";
 import { ProductCard } from "./product-card";
-
-const ALL_LABEL: Record<Locale, string> = {
-  en: "All",
-  fr: "Tous",
-  ar: "الكل",
-};
-
-const SORT_KEYS: Array<{ value: PublicCatalogueSort; key: string }> = [
-  { value: "featured", key: "shop.sortFeatured" },
-  { value: "newest", key: "shop.sortNewest" },
-  { value: "oldest", key: "shop.sortOldest" },
-  { value: "title", key: "shop.sortTitle" },
-];
-
-function shopHref(
-  locale: Locale,
-  input: PublicCatalogueIndexInput,
-  changes: Partial<PublicCatalogueIndexInput>,
-): string {
-  const next = { ...input, ...changes };
-  const params = new URLSearchParams();
-  if (next.query) params.set("q", next.query);
-  if (next.category) params.set("category", next.category);
-  if (next.availability) params.set("availability", next.availability);
-  if (next.sort !== "featured") params.set("sort", next.sort);
-  const query = params.toString();
-  const base = localeHref(locale, "/products");
-  return query ? `${base}?${query}` : base;
-}
+import { ShopDiscoveryControls } from "./shop-discovery-controls";
 
 export function ProductGrid({
   products,
@@ -73,6 +42,7 @@ export function ProductGrid({
                 {translate(messages, "shop.body")}
               </p>
             </div>
+
             <Link
               href={localeHref(locale, "/cart")}
               className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 transition hover:border-[#0A84FF]/40 hover:text-[#0064E0]"
@@ -83,95 +53,11 @@ export function ProductGrid({
             </Link>
           </div>
 
-          <form
-            method="get"
-            action={localeHref(locale, "/products")}
-            className="mt-9 grid gap-3 rounded-[24px] border border-slate-200 bg-white p-4 md:grid-cols-[minmax(0,1fr)_190px_190px_auto]"
-          >
-            {input.category ? <input type="hidden" name="category" value={input.category} /> : null}
-            <label className="text-sm font-medium text-slate-700">
-              {translate(messages, "shop.search")}
-              <input
-                name="q"
-                defaultValue={input.query}
-                placeholder={translate(messages, "shop.searchPlaceholder")}
-                className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 font-normal outline-none focus:border-[#0064E0]"
-              />
-            </label>
-            <label className="text-sm font-medium text-slate-700">
-              {translate(messages, "shop.availability")}
-              <select
-                name="availability"
-                defaultValue={input.availability ?? ""}
-                className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-[#0064E0]"
-              >
-                <option value="">{translate(messages, "shop.allAvailability")}</option>
-                <option value="available">{translate(messages, "shop.availableNow")}</option>
-                <option value="coming-soon">{translate(messages, "shop.comingSoon")}</option>
-              </select>
-            </label>
-            <label className="text-sm font-medium text-slate-700">
-              {translate(messages, "shop.sort")}
-              <select
-                name="sort"
-                defaultValue={input.sort}
-                className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-[#0064E0]"
-              >
-                {SORT_KEYS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {translate(messages, option.key)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="flex items-end gap-2">
-              <button
-                type="submit"
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-medium text-white transition hover:bg-[#0064E0]"
-              >
-                {translate(messages, "shop.apply")}
-              </button>
-              <Link
-                href={localeHref(locale, "/products")}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                {translate(messages, "shop.clear")}
-              </Link>
-            </div>
-          </form>
-
-          {categories.length > 1 ? (
-            <div
-              className="mt-5 flex max-w-full gap-2 overflow-x-auto pb-2"
-              aria-label={translate(messages, "shop.categories")}
-            >
-              <Link
-                href={shopHref(locale, input, { category: undefined })}
-                aria-current={!input.category ? "page" : undefined}
-                className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition ${
-                  !input.category
-                    ? "border-[#0A84FF] bg-[#0A84FF] text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-[#0A84FF]/40"
-                }`}
-              >
-                {ALL_LABEL[locale]}
-              </Link>
-              {categories.map((category) => (
-                <Link
-                  key={category}
-                  href={shopHref(locale, input, { category })}
-                  aria-current={input.category === category ? "page" : undefined}
-                  className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition ${
-                    input.category === category
-                      ? "border-[#0A84FF] bg-[#0A84FF] text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-[#0A84FF]/40"
-                  }`}
-                >
-                  {category}
-                </Link>
-              ))}
-            </div>
-          ) : null}
+          <ShopDiscoveryControls
+            categories={categories}
+            input={input}
+            locale={locale}
+          />
 
           <p className="mt-5 text-sm text-slate-500">
             {products.length} {translate(messages, "shop.results")}
