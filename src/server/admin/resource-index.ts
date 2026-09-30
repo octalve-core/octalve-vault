@@ -20,19 +20,36 @@ export type ResourceIndexMeta = {
   totalPages: number;
 };
 
+export type ResourceIndexActiveFilter = {
+  key: string;
+  label: string;
+  value: string;
+  params: string[];
+};
+
+export type ResourceIndexResult<T> = {
+  items: T[];
+  meta: ResourceIndexMeta;
+  activeFilters: ResourceIndexActiveFilter[];
+};
+
 export function normalizeSearchText(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.trim().replace(/\s+/g, " ").slice(0, 200);
 }
 
 export function parsePage(value: unknown): number {
-  const parsed = typeof value === "string" || typeof value === "number" ? Number(value) : NaN;
+  const parsed =
+    typeof value === "string" || typeof value === "number" ? Number(value) : NaN;
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : 1;
 }
 
 export function parsePageSize(value: unknown): AdminPageSize {
-  const parsed = typeof value === "string" || typeof value === "number" ? Number(value) : NaN;
-  return (ADMIN_PAGE_SIZES as readonly number[]).includes(parsed) ? (parsed as AdminPageSize) : 25;
+  const parsed =
+    typeof value === "string" || typeof value === "number" ? Number(value) : NaN;
+  return (ADMIN_PAGE_SIZES as readonly number[]).includes(parsed)
+    ? (parsed as AdminPageSize)
+    : 25;
 }
 
 export function parseSort<TSort extends string>(
@@ -40,7 +57,8 @@ export function parseSort<TSort extends string>(
   allowed: readonly TSort[],
   fallback: TSort,
 ): TSort {
-  return typeof value === "string" && (allowed as readonly string[]).includes(value)
+  return typeof value === "string" &&
+    (allowed as readonly string[]).includes(value)
     ? (value as TSort)
     : fallback;
 }
@@ -50,8 +68,10 @@ function parseDateOnly(value: unknown): Date | undefined {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new Error("Invalid date filter.");
   }
+
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
+
   if (
     date.getUTCFullYear() !== year ||
     date.getUTCMonth() !== month - 1 ||
@@ -59,6 +79,7 @@ function parseDateOnly(value: unknown): Date | undefined {
   ) {
     throw new Error("Invalid date filter.");
   }
+
   return date;
 }
 
@@ -69,7 +90,11 @@ export function parseDateRange(from: unknown, to: unknown): ParsedDateRange {
     ? new Date(parsedTo.getTime() + 24 * 60 * 60 * 1000)
     : undefined;
 
-  if (parsedFrom && toExclusive && parsedFrom.getTime() >= toExclusive.getTime()) {
+  if (
+    parsedFrom &&
+    toExclusive &&
+    parsedFrom.getTime() >= toExclusive.getTime()
+  ) {
     throw new Error("Invalid date range.");
   }
 
@@ -81,7 +106,10 @@ export function paginationMeta(
   pageSize: AdminPageSize,
   total: number,
 ): ResourceIndexMeta {
-  if (!Number.isSafeInteger(total) || total < 0) throw new Error("Invalid result count.");
+  if (!Number.isSafeInteger(total) || total < 0) {
+    throw new Error("Invalid result count.");
+  }
+
   return {
     page,
     pageSize,
