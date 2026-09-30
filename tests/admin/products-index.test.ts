@@ -139,8 +139,15 @@ test("active filter descriptors are derived from validated state", () => {
   );
 
   assert.deepEqual(
-    productIndexActiveFilters(input).map((item) => item.key),
-    ["query", "status", "currency"],
+    productIndexActiveFilters(input).map((item) => ({
+      key: item.key,
+      params: item.params,
+    })),
+    [
+      { key: "query", params: ["q"] },
+      { key: "status", params: ["status"] },
+      { key: "currency", params: ["currency"] },
+    ],
   );
 });
 
@@ -170,6 +177,7 @@ test("Admin Product discovery is database-query-backed rather than page-local fi
   assert.match(page, /searchParams/);
   assert.match(page, /parseProductIndexParams/);
   assert.match(controls, /method="get"/);
+  assert.match(list, /AdminIndexResults/);
   assert.doesNotMatch(list, /\.filter\(\(product\)/);
 });
 

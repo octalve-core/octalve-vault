@@ -13,8 +13,9 @@ import {
   parsePageSize,
   parseSort,
   type ParsedDateRange,
+  type ResourceIndexActiveFilter,
   type ResourceIndexBase,
-  type ResourceIndexMeta,
+  type ResourceIndexResult,
 } from "./resource-index.ts";
 
 export const PRODUCT_INDEX_SORTS = [
@@ -40,17 +41,8 @@ export type ProductIndexInput = ResourceIndexBase<ProductIndexSort> & {
   updated: ParsedDateRange;
 };
 
-export type ProductIndexActiveFilter = {
-  key: string;
-  label: string;
-  value: string;
-};
-
-export type ProductIndexResult<T> = {
-  items: T[];
-  meta: ResourceIndexMeta;
-  activeFilters: ProductIndexActiveFilter[];
-};
+export type ProductIndexActiveFilter = ResourceIndexActiveFilter;
+export type ProductIndexResult<T> = ResourceIndexResult<T>;
 
 function invalid(message: string): never {
   throw new Error(message);
@@ -253,6 +245,7 @@ export function productIndexActiveFilters(
       key: "query",
       label: "Search",
       value: input.query,
+      params: ["q"],
     });
   }
 
@@ -261,6 +254,7 @@ export function productIndexActiveFilters(
       key: "status",
       label: "Status",
       value: input.status,
+      params: ["status"],
     });
   }
 
@@ -269,6 +263,7 @@ export function productIndexActiveFilters(
       key: "category",
       label: "Category",
       value: input.category,
+      params: ["category"],
     });
   }
 
@@ -277,6 +272,7 @@ export function productIndexActiveFilters(
       key: "featured",
       label: "Featured",
       value: input.featured ? "Yes" : "No",
+      params: ["featured"],
     });
   }
 
@@ -285,6 +281,7 @@ export function productIndexActiveFilters(
       key: "readiness",
       label: "Readiness",
       value: input.readiness,
+      params: ["readiness"],
     });
   }
 
@@ -293,6 +290,7 @@ export function productIndexActiveFilters(
       key: "asset",
       label: "Asset",
       value: input.asset,
+      params: ["asset"],
     });
   }
 
@@ -301,6 +299,7 @@ export function productIndexActiveFilters(
       key: "currency",
       label: "Currency",
       value: input.currency,
+      params: ["currency"],
     });
   }
 
@@ -319,6 +318,7 @@ export function productIndexActiveFilters(
             )
           : "…"
       }`,
+      params: ["createdFrom", "createdTo"],
     });
   }
 
@@ -337,6 +337,7 @@ export function productIndexActiveFilters(
             )
           : "…"
       }`,
+      params: ["updatedFrom", "updatedTo"],
     });
   }
 

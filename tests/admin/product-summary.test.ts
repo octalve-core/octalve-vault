@@ -33,3 +33,38 @@ test("Product needs-attention includes DRAFT and ACTIVE-not-ready but excludes A
   );
   assert.doesNotMatch(summary, /status:\s*"ARCHIVED"/);
 });
+
+test("Products page renders stable summary cards above the existing discovery controls", () => {
+  const page = source(
+    "src/app/admin/(protected)/products/page.tsx",
+  );
+  const controls = source(
+    "src/features/admin/products/product-index-controls.tsx",
+  );
+
+  assert.match(page, /getAdminProductSummary/);
+  assert.match(page, /AdminSummaryGrid/);
+  assert.match(page, /Total products/);
+  assert.match(page, /Ready to sell/);
+  assert.match(page, /Coming Soon/);
+  assert.match(page, /Needs attention/);
+  assert.match(page, /ProductIndexControls/);
+
+  for (const name of [
+    'name="q"',
+    'name="status"',
+    'name="category"',
+    'name="featured"',
+    'name="readiness"',
+    'name="asset"',
+    'name="currency"',
+    'name="createdFrom"',
+    'name="createdTo"',
+    'name="updatedFrom"',
+    'name="updatedTo"',
+    'name="sort"',
+    'name="pageSize"',
+  ]) {
+    assert.match(controls, new RegExp(name));
+  }
+});
