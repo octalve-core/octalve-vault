@@ -1,6 +1,6 @@
 # Octalve Vault Admin Operations & Discovery — Design
 
-**Status:** Approved architecture, written design pending repository review
+**Status:** Implemented — D1–D5 verified
 **Date:** 2026-09-30
 **Baseline:** `1d0da7653ca70e5e8905a541efd1554aed09df7c`
 **Scope:** Admin Products, Orders, Payments, Customers, Downloads, Marketing, Team, Audit Logs
@@ -770,3 +770,12 @@ The Admin-wide upgrade is complete when:
 8. No customer-facing payment/refund/download authority is weakened.
 9. All Admin pages use a coherent visual and interaction system.
 10. D5 full release verification passes from a clean repository.
+
+## 25. Implementation record
+
+- D1 shared foundation and Product operations summary: `c19bdedfd7ecd285752b3e0b2ee39079690a2d89`
+- D2–D4 Admin-wide operations discovery batch: `759e69b79ea61efc1d94b2202b5e96a02467167b`
+- Full-regression compatibility repair: `df9045795abfe77e9960a64e47f1e3d7b95db2aa`
+- D5 cross-page release contract: `31bc6bbd1137d38a998a9b2844d02203f36ab25f`
+- Full release gate: tests, typecheck, lint, source verification, production build, protected-authority hashes, pnpm store and clean-worktree checks passed before this record was committed.
+- Deployment path: GitHub-connected Vercel only; no manual production CLI deployment.
