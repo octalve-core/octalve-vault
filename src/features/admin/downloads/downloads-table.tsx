@@ -1,4 +1,5 @@
 "use client";
+import { adminNotice } from "@/features/admin/shared/admin-notification-provider";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -42,6 +43,11 @@ export function DownloadsTable({ grants }: { grants: Grant[] }) {
 
   async function revoke(id: string) {
     if (busy !== null) return;
+
+    const noticeId = adminNotice.pending({
+      title: "Revoking download access",
+      message: "Applying the server-authoritative grant revocation...",
+    });
     setBusy(id);
     setFeedback({
       state: "pending",
@@ -61,12 +67,23 @@ export function DownloadsTable({ grants }: { grants: Grant[] }) {
         state: "success",
         message: "Download access revoked.",
       });
+      adminNotice.success(noticeId, {
+        title: "Download access revoked",
+        message: "Future downloads for this grant are now blocked.",
+      });
       router.refresh();
     } catch (caught) {
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : "Unable to revoke grant.";
       setFeedback({
         state: "error",
-        message:
-          caught instanceof Error ? caught.message : "Unable to revoke grant.",
+        message,
+      });
+      adminNotice.error(noticeId, {
+        title: "Access was not revoked",
+        message,
       });
     } finally {
       setBusy(null);

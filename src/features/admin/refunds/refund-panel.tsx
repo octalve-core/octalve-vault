@@ -1,4 +1,5 @@
 "use client";
+import { adminNotice } from "@/features/admin/shared/admin-notification-provider";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -49,6 +50,10 @@ export function RefundPanel({
 
   async function sync(id: string) {
     if (syncingId !== null) return;
+    const noticeId = adminNotice.pending({
+      title: "Checking refund status",
+      message: "Refreshing the latest provider-confirmed refund state...",
+    });
 
     setSyncingId(id);
     setFeedback({
@@ -70,8 +75,18 @@ export function RefundPanel({
         state: "success",
         message: "Refund status refreshed.",
       });
+      adminNotice.success(noticeId, {
+        title: "Refund status refreshed",
+        message: "The latest provider-confirmed state is now displayed.",
+      });
       router.refresh();
     } catch (caught) {
+      const noticeMessage =
+        caught instanceof Error ? caught.message : "Unable to sync refund.";
+      adminNotice.error(noticeId, {
+        title: "Refund status check failed",
+        message: noticeMessage,
+      });
       setFeedback({
         state: "error",
         message:
@@ -113,6 +128,10 @@ export function RefundPanel({
       return;
     }
 
+    const noticeId = adminNotice.pending({
+      title: "Initiating refund",
+      message: "Submitting the validated request to the payment provider...",
+    });
     setSubmitting(true);
     setFeedback({
       state: "pending",
@@ -137,10 +156,21 @@ export function RefundPanel({
 
       setFeedback({
         state: "success",
-        message: "Refund request accepted by the provider.",
+        message: "Refund initiated.",
+      });
+      adminNotice.success(noticeId, {
+        title: "Refund initiated",
+        message:
+          "The provider accepted the request. Use Sync for the latest confirmed status.",
       });
       router.refresh();
     } catch (caught) {
+      const noticeMessage =
+        caught instanceof Error ? caught.message : "Refund failed.";
+      adminNotice.error(noticeId, {
+        title: "Refund was not initiated",
+        message: noticeMessage,
+      });
       setFeedback({
         state: "error",
         message:

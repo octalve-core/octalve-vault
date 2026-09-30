@@ -1,4 +1,5 @@
 "use client";
+import { adminNotice } from "@/features/admin/shared/admin-notification-provider";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -135,6 +136,10 @@ export function MarketingManager({
 
   async function createCoupon(formData: FormData) {
     setBusy(true);
+    const noticeId = adminNotice.pending({
+      title: "Creating coupon",
+      message: "Saving the new coupon...",
+    });
     setMessage(null);
 
     try {
@@ -219,8 +224,18 @@ export function MarketingManager({
       }
 
       setMessage("Coupon created.");
+      adminNotice.success(noticeId, {
+        title: "Coupon created",
+        message: "The coupon list and summary are now refreshed.",
+      });
       router.refresh();
     } catch (error) {
+      const noticeMessage =
+        error instanceof Error ? error.message : "Unable to create coupon.";
+      adminNotice.error(noticeId, {
+        title: "Coupon not created",
+        message: noticeMessage,
+      });
       setMessage(
         error instanceof Error
           ? error.message
@@ -235,6 +250,10 @@ export function MarketingManager({
     formData: FormData,
   ) {
     setBusy(true);
+    const noticeId = adminNotice.pending({
+      title: "Creating affiliate",
+      message: "Saving the new affiliate...",
+    });
     setMessage(null);
 
     try {
@@ -280,8 +299,18 @@ export function MarketingManager({
       }
 
       setMessage("Affiliate created.");
+      adminNotice.success(noticeId, {
+        title: "Affiliate created",
+        message: "The affiliate list and summary are now refreshed.",
+      });
       router.refresh();
     } catch (error) {
+      const noticeMessage =
+        error instanceof Error ? error.message : "Unable to create affiliate.";
+      adminNotice.error(noticeId, {
+        title: "Affiliate not created",
+        message: noticeMessage,
+      });
       setMessage(
         error instanceof Error
           ? error.message
@@ -298,6 +327,10 @@ export function MarketingManager({
     active: boolean,
   ) {
     setBusy(true);
+    const noticeId = adminNotice.pending({
+      title: "Updating marketing status",
+      message: "Saving the new active state...",
+    });
     setMessage(null);
 
     try {
@@ -327,8 +360,18 @@ export function MarketingManager({
         );
       }
 
+      adminNotice.success(noticeId, {
+        title: "Marketing status updated",
+        message: "The latest server-confirmed status is now displayed.",
+      });
       router.refresh();
     } catch (error) {
+      const noticeMessage =
+        error instanceof Error ? error.message : "Unable to update status.";
+      adminNotice.error(noticeId, {
+        title: "Status not updated",
+        message: noticeMessage,
+      });
       setMessage(
         error instanceof Error
           ? error.message

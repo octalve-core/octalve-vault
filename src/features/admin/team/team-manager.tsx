@@ -1,4 +1,5 @@
 "use client";
+import { adminNotice } from "@/features/admin/shared/admin-notification-provider";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -6,7 +7,77 @@ const roles = ["SUPER_ADMIN", "ADMIN", "CATALOG_MANAGER", "SUPPORT", "AUDITOR"] 
 type User = { id: string; email: string; displayName: string; role: string; active: boolean; lastLoginAt: string | null };
 export function TeamManager({ users, canWrite }: { users: User[]; canWrite: boolean }) {
   const router = useRouter(); const [message, setMessage] = useState<string | null>(null);
-  async function create(form: FormData) { setMessage(null); const response = await fetch("/api/admin/team", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: form.get("email"), displayName: form.get("displayName"), password: form.get("password"), role: form.get("role") }) }); const data = await response.json() as { error?: string }; if (!response.ok) { setMessage(data.error || "Unable to add admin."); return; } setMessage("Admin account created."); router.refresh(); }
-  async function update(id: string, body: unknown) { setMessage(null); const response = await fetch(`/api/admin/team/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json() as { error?: string }; if (!response.ok) { setMessage(data.error || "Unable to update account."); return; } router.refresh(); }
+  async function create(form: FormData) {
+    const noticeId = adminNotice.pending({
+      title: "Creating team member",
+      message: "Applying the selected role and account settings...",
+    });
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/team", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: form.get("email"),
+          displayName: form.get("displayName"),
+          password: form.get("password"),
+          role: form.get("role"),
+        }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to add admin.");
+      }
+
+      setMessage("Admin account created.");
+      adminNotice.success(noticeId, {
+        title: "Team member created",
+        message: "The server-confirmed team list is now refreshed.",
+      });
+      router.refresh();
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Unable to add admin.";
+      setMessage(message);
+      adminNotice.error(noticeId, {
+        title: "Team member not created",
+        message,
+      });
+    }
+  }
+  async function update(id: string, body: unknown) {
+    const noticeId = adminNotice.pending({
+      title: "Updating team member",
+      message: "Saving the new access settings...",
+    });
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/team/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to update account.");
+      }
+
+      adminNotice.success(noticeId, {
+        title: "Team member updated",
+        message: "The latest server-confirmed role and status are now displayed.",
+      });
+      router.refresh();
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Unable to update account.";
+      setMessage(message);
+      adminNotice.error(noticeId, {
+        title: "Team member not updated",
+        message,
+      });
+    }
+  }
   return <div className="grid gap-6 xl:grid-cols-[1fr_380px]"><div className="space-y-3">{users.map((user) => <div key={user.id} className="rounded-[24px] border border-slate-200 bg-white p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium text-slate-950">{user.displayName}</p><p className="mt-1 text-sm text-slate-500">{user.email}</p><p className="mt-2 text-xs font-medium uppercase tracking-[.1em] text-[#0064E0]">{user.role.replaceAll("_", " ")} · {user.active ? "Active" : "Disabled"}</p></div>{canWrite ? <div className="flex flex-wrap gap-2"><select defaultValue={user.role} onChange={(event) => void update(user.id, { role: event.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 text-xs font-medium">{roles.map((role) => <option key={role}>{role}</option>)}</select><button type="button" onClick={() => void update(user.id, { active: !user.active })} className="rounded-xl border border-slate-200 px-3 text-xs font-medium text-slate-700">{user.active ? "Disable" : "Enable"}</button></div> : null}</div></div>)}</div>{canWrite ? <form action={create} className="h-fit rounded-[28px] border border-slate-200 bg-white p-6"><h2 className="font-medium text-slate-950">Add team member</h2><div className="mt-5 grid gap-3"><input name="displayName" required placeholder="Display name" className="h-11 rounded-xl border border-slate-200 px-3" /><input name="email" required type="email" placeholder="Email" className="h-11 rounded-xl border border-slate-200 px-3" /><input name="password" required type="password" minLength={12} placeholder="Temporary password" className="h-11 rounded-xl border border-slate-200 px-3" /><select name="role" defaultValue="AUDITOR" className="h-11 rounded-xl border border-slate-200 px-3">{roles.map((role) => <option key={role}>{role}</option>)}</select></div><button className="mt-4 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-medium text-white">Create admin</button>{message ? <p className="mt-4 text-sm font-medium text-slate-600">{message}</p> : null}</form> : null}</div>;
 }
