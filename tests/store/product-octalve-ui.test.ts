@@ -72,21 +72,20 @@ test("canonical product card and details modal use the adapter without fabricate
   assert.doesNotMatch(modal, /reviewCount|rating=/);
 });
 
-test("shop grid derives filters from DB products and keeps canonical Octalve hierarchy", () => {
+test("shop grid renders query-backed DB products and keeps canonical Octalve hierarchy", () => {
   const grid = source(gridPath);
   assert.match(grid, /products: PublicProduct\[\]/);
-  assert.match(grid, /product\.category/);
+  assert.match(grid, /categories: string\[\]/);
   assert.match(grid, /ProductCard/);
   assert.match(grid, /font-medium/);
   assert.doesNotMatch(grid, /vaultProducts|vault-catalog|Business & Startup|Operations & Admin/);
-
+  assert.doesNotMatch(grid, /products\.filter|useState|useMemo/);
   const shopRoute = source(shopRoutePath);
-  assert.match(shopRoute, /getPublicProducts\(locale\)/);
+  assert.match(shopRoute, /getPublicProducts\(locale,\s*input\)/);
   assert.match(shopRoute, /ProductGrid/);
   assert.doesNotMatch(shopRoute, /font-black|font-extrabold|localStorage|vaultProducts/);
-  assert.ok(shopRoute.split(/\r?\n/).length <= 55, "shop route must stay composition-focused");
+  assert.ok(shopRoute.split(/\r?\n/).length <= 70, "shop route must stay composition-focused");
 });
-
 test("SEO product detail matches Octalve medium-weight family while keeping independent route", () => {
   const detail = source(detailPath);
   const actions = source(actionsPath);

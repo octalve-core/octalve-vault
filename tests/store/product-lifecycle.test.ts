@@ -12,16 +12,15 @@ const source = (relative: string) => readFileSync(resolve(root, relative), "utf8
 test("public catalogue encodes the approved lifecycle boundary", () => {
   const types = source("src/features/store/catalogue/types.ts");
   const catalogue = source("src/features/store/catalogue/catalogue-service.ts");
-
+  const catalogueIndex = source("src/features/store/catalogue/catalogue-index.ts");
   assert.match(types, /status:\s*ProductStatus/);
   assert.match(types, /purchasable:\s*boolean/);
-  assert.match(catalogue, /status:\s*"COMING_SOON"/);
-  assert.match(catalogue, /status:\s*"ACTIVE"[\s\S]*assets:\s*\{\s*some:\s*\{\s*status:\s*"PUBLISHED"/);
+  assert.match(catalogueIndex, /status:\s*"COMING_SOON"/);
+  assert.match(catalogueIndex, /status:\s*"ACTIVE"[\s\S]*assets:\s*\{\s*some:\s*\{\s*status:\s*"PUBLISHED"/);
   assert.match(catalogue, /product\.status === "ACTIVE" && product\.assets\.length > 0/);
-  assert.doesNotMatch(catalogue, /status:\s*"DRAFT"/);
-  assert.doesNotMatch(catalogue, /status:\s*"ARCHIVED"/);
+  assert.doesNotMatch(catalogueIndex, /status:\s*"DRAFT"/);
+  assert.doesNotMatch(catalogueIndex, /status:\s*"ARCHIVED"/);
 });
-
 test("Coming Soon can display a price without becoming purchasable", () => {
   const comingSoon: PublicProduct = {
     id: "vp_soon",
