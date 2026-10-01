@@ -172,3 +172,20 @@ Do not place payment, database, JWT, OTP or R2 S3 credentials in the Worker.
 ## Future provider configuration
 
 Do not add provider-specific conditionals to page components. Future payment/storage/email providers should implement the existing internal adapter/service boundaries and be enabled through configuration only after their credentials and supported currencies are known.
+
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:START -->
+## Batch F - Product media / ImageKit
+
+Batch F uses ImageKit only for public merchandising media. Cloudflare R2 remains private and authoritative only for commercial downloadable product archives.
+
+Required server-side values for local release verification:
+
+- DATABASE_URL
+- IMAGEKIT_PRIVATE_KEY
+- IMAGEKIT_PUBLIC_KEY
+- IMAGEKIT_URL_ENDPOINT
+
+The ImageKit private key is server-only. It must never use a NEXT_PUBLIC_ prefix and must never be emitted to browser JavaScript, API responses, logs, audit metadata, source control, or release reports.
+
+The three ImageKit variables must also exist in Vercel Production before the Git-triggered production release. Presence may be verified, but values must never be printed.
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:END -->

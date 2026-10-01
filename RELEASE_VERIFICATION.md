@@ -258,3 +258,54 @@ Provider/infrastructure behavior cannot be proven without the real deployment ac
 ## Release rule
 
 The current branch has strong source-level test and architecture evidence, but production readiness remains conditional on the pinned dependency/Prisma/type/lint/audit/build gates and real runtime/provider smoke tests above. Evidence is required before merge/deployment; no deferred gate should be treated as passed.
+
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:START -->
+## Batch F - ProductMedia + ImageKit release verification
+
+Local release gate:
+
+- F1-F5 checkpoint ancestry is preserved.
+- F6 RED is reproduced before GREEN.
+- F6 focused test passes 2/2.
+- Full repository tests pass.
+- TypeScript passes.
+- ESLint passes.
+- source verification passes.
+- Prisma validate and generate pass.
+- production build passes.
+- git diff --check and git diff --cached --check pass.
+- pnpm store status reports untouched packages.
+- Phase 1 payment/refund/download/checkout authority Git blobs remain stable.
+- Protected Prisma model blocks remain stable.
+- Exact baseline-to-HEAD Batch F mutation boundary is enforced.
+- The migration remains additive and does not alter protected financial/download/private-storage tables.
+- package.json changes only by adding @imagekit/next@2.1.6.
+- No real credentials are committed or printed.
+
+Release gate:
+
+- Required local variables are present without printing values.
+- ImageKit variables are present in Vercel Production without printing values.
+- pnpm db:deploy is the only production migration path.
+- Prisma migration status must be up to date.
+- No seed.
+- Fresh origin/main must still equal the approved Batch F baseline before the push.
+- Exactly one final push.
+- Final HEAD must equal origin/main.
+- Vercel deployment must be Git-triggered and Ready for the exact final SHA.
+
+Production smoke:
+
+- legacy product image fallback still renders;
+- Admin Media Library loads for an authorized Admin;
+- unauthorized upload authorization is denied;
+- controlled ImageKit upload and server registration succeed;
+- image can be attached and made primary;
+- public product image resolves through ProductMedia;
+- checkout authority is unchanged;
+- retirement is blocked while media is in use;
+- detach/replace works;
+- private downloads remain on downloads.octalve.com.
+
+Batch F is not called fully live until authenticated production smoke is complete.
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:END -->

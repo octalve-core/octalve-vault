@@ -117,3 +117,24 @@ After each production deploy verify:
 - a resumable/Range download works;
 - notification processing succeeds;
 - a controlled refund test is performed according to provider/business policy before relying on refunds operationally.
+
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:START -->
+## Batch F - Product media operations
+
+The Admin Media Library is backed by Neon/PostgreSQL business state while ImageKit owns public image binary delivery and provider metadata.
+
+Operational invariants:
+
+- MediaAsset retirement is soft.
+- Retirement is blocked while ProductMedia assignments still reference the MediaAsset.
+- Product media assignment, set-primary, alt text, reorder, remove, and retirement remain server-authoritative.
+- ProductMedia ownership is verified against the Product route.
+- Public image resolution order is READY primary ProductMedia, then legacy Product.imagePath, then /brand/vault-logo.png.
+- Retired media never enters the public gallery.
+- Product.imagePath remains a supported compatibility fallback.
+- Product media never determines checkout readiness.
+- Checkout readiness remains ACTIVE product + published private ProductAsset + selected-currency price.
+- Commercial downloads remain private on downloads.octalve.com through the existing R2/entitlement flow.
+
+Production smoke must cover legacy fallback, Media Library access, unauthorized upload denial, controlled ImageKit upload/registration, attach/set-primary, public image resolution, in-use retirement blocking, detach/replace, unchanged checkout authority, and unchanged private download behavior.
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:END -->

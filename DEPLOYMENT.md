@@ -288,3 +288,26 @@ Only after this checklist passes should the old Octalve Holding Vault page be re
 ## 13. Rollback principle
 
 Because Vault is independent, a failed Vault release does not require changing Octalve Holding. Roll back the Vercel Vault deployment to the previous good deployment, leave R2 private, preserve database/payment records, and diagnose before applying new migrations or replaying financial actions.
+
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:START -->
+## Batch F - Product media / ImageKit release
+
+The Batch F release is fail-closed.
+
+Release order:
+
+1. Prove the F6 RED and focused GREEN.
+2. Run full tests, TypeScript, ESLint, source verification, Prisma validate/generate, production build, git diff checks, protected-authority checks, migration safety checks, package-delta checks, and pnpm store verification.
+3. Commit the sixth checkpoint as "docs: record batch f product media rollout".
+4. Confirm DATABASE_URL, IMAGEKIT_PRIVATE_KEY, IMAGEKIT_PUBLIC_KEY, and IMAGEKIT_URL_ENDPOINT locally without printing values.
+5. Confirm the ImageKit variable names exist in Vercel Production without printing values.
+6. Use only the existing production-safe additive migration command: pnpm db:deploy.
+7. Require Prisma migration status to report the schema is up to date.
+8. Never seed production and never run prisma migrate dev against production.
+9. Fetch origin/main and require it still points to the approved Batch F baseline before the one controlled push.
+10. Execute exactly one final git push origin main.
+11. Verify HEAD equals origin/main after the push.
+12. Verify the Git-triggered Vercel Production deployment is Ready for the exact final commit SHA.
+
+Do not use vercel deploy --prod for Batch F. Vercel deployment must remain Git-triggered.
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:END -->

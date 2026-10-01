@@ -116,3 +116,30 @@ If `INTERNAL_DOWNLOAD_SECRET` changes, update both Vercel and Worker `OCTALVE_IN
 ## Production verification
 
 Before launch run `scripts/verify.ps1` (Windows) or `scripts/verify.sh` (Unix). A production release is not approved on the basis of tests alone: the script also requires Prisma validation/generation, typecheck, ESLint, dependency audits, production build, frozen lockfile and pnpm store integrity.
+
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:START -->
+## Batch F - Public product media security
+
+ImageKit is public merchandising-media storage only. It does not replace private Cloudflare R2 product archives and it does not become commerce, payment, entitlement, refund, or download authority.
+
+Upload and registration controls:
+
+- JPEG, PNG, WebP, and AVIF only.
+- SVG is rejected.
+- Maximum upload size: 10 MiB.
+- Maximum image dimension: 12,000 px per side.
+- Maximum total pixels: 50,000,000.
+- Upload authorization is an authenticated Admin POST.
+- Existing same-origin mutation / CSRF enforcement remains mandatory.
+- Existing product.write permission remains authoritative.
+- Upload grants are limited to 20 per hour per Admin and 60 per day per Admin.
+- Provider filenames are opaque and server-generated.
+- Arbitrary user-supplied URL import/fetch is not supported.
+- ImageKit metadata is re-fetched and verified server-side.
+- Registration verifies provider ID, the /octalve-vault/products/ folder, fileType=image, MIME, size, dimensions, pixel count, public state, published state, and independent JPEG/PNG/WebP/AVIF magic bytes.
+- ProductMedia IDs are scoped to the Product in the route to prevent BOLA.
+- Request properties are explicitly mapped; generic mass assignment is not allowed.
+- State-changing media operations are audited.
+- ImageKit physical deletion is out of scope; retirement is soft.
+- IMAGEKIT_PRIVATE_KEY is server-only and must never appear in browser code, Git, logs, API responses, or audit metadata.
+<!-- OCTALVE_BATCH_F_PRODUCT_MEDIA_IMAGEKIT_RELEASE:END -->
