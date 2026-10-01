@@ -4,7 +4,7 @@ import { AdminNotificationProvider } from "@/features/admin/shared/admin-notific
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BadgePercent, BarChart3, Boxes, ClipboardList, CreditCard, Download, FileClock, LogOut, Menu, Settings, ShieldAlert, ShieldCheck, Users, WalletCards, X } from "lucide-react";
+import { BadgePercent, BarChart3, Boxes, ClipboardList, CreditCard, Download, FileClock, Images, LogOut, Menu, Settings, ShieldAlert, ShieldCheck, Users, WalletCards, X } from "lucide-react";
 import { useState } from "react";
 import type { AdminRole } from "@/domain/constants";
 import { hasPermission, type Permission } from "@/domain/permissions";
@@ -12,6 +12,7 @@ import { hasPermission, type Permission } from "@/domain/permissions";
 const nav: Array<{ href: string; label: string; icon: typeof BarChart3; permission: Permission }> = [
   { href: "/admin", label: "Overview", icon: BarChart3, permission: "dashboard.read" },
   { href: "/admin/products", label: "Products", icon: Boxes, permission: "product.read" },
+  { href: "/admin/media", label: "Media", icon: Images, permission: "product.write" },
   { href: "/admin/orders", label: "Orders", icon: ClipboardList, permission: "order.read" },
   { href: "/admin/payments", label: "Payments", icon: CreditCard, permission: "payment.read" },
   { href: "/admin/customers", label: "Customers", icon: Users, permission: "customer.read" },

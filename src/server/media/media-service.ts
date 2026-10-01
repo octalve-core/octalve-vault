@@ -10,6 +10,8 @@ import {
 } from "./imagekit-provider";
 import { sanitizeMediaFilename, validateProviderImage } from "./media-validation";
 
+export type MediaUsageDto = { productId: string; slug: string; title: string };
+
 export type AdminMediaAssetDto = {
   id: string;
   providerAssetId: string;
@@ -23,12 +25,12 @@ export type AdminMediaAssetDto = {
   publicUrl: string;
   thumbnailUrl: string;
   usageCount: number;
-  usages: Array<{ productId: string; slug: string; title: string }>;
+  usages: MediaUsageDto[];
   createdAt: string;
   retiredAt: string | null;
 };
 
-export function serializeMediaAsset(asset: {
+type SerializableMedia = {
   id: string;
   providerAssetId: string;
   providerFilePath: string;
@@ -41,9 +43,15 @@ export function serializeMediaAsset(asset: {
   createdAt: Date;
   retiredAt: Date | null;
   productMedia?: Array<{
-    product: { id: string; slug: string; translations: Array<{ title: string }> };
+    product: {
+      id: string;
+      slug: string;
+      translations: Array<{ title: string }>;
+    };
   }>;
-}): AdminMediaAssetDto {
+};
+
+export function serializeMediaAsset(asset: SerializableMedia): AdminMediaAssetDto {
   const usages = (asset.productMedia ?? []).map((usage) => ({
     productId: usage.product.id,
     slug: usage.product.slug,
@@ -95,7 +103,6 @@ export async function registerMediaAsset(
         createdByAdminId: actorAdminId,
       },
     });
-
     await writeAdminAudit({
       actorAdminId,
       action: "MEDIA_REGISTERED",
@@ -116,4 +123,71 @@ export async function registerMediaAsset(
     }
     throw error;
   }
+}
+
+export async function retireMediaAsset(
+  actorAdminId: string,
+  mediaAssetId: string,
+): Promise<AdminMediaAssetDto> {
+  const asset = await prisma.mediaAsset.findUnique({
+    where: { id: mediaAssetId },
+    include: {
+      productMedia: {
+        select: {
+          product: {
+            select: {
+              id: true,
+              slug: true,
+              translations: {
+                where: { locale: "en" },
+                select: { title: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!asset) throw Object.assign(new Error("Media asset not found."), { status: 404 });
+  if (asset.productMedia.length > 0) {
+    throw Object.assign(
+      new Error(
+        `This image is still used by ${asset.productMedia.length} product${
+          asset.productMedia.length === 1 ? "" : "s"
+        }. Remove or replace those usages first.`,
+      ),
+      { status: 409 },
+    );
+  }
+  if (asset.status === "RETIRED") return serializeMediaAsset(asset);
+
+  const updated = await prisma.mediaAsset.update({
+    where: { id: mediaAssetId },
+    data: { status: "RETIRED", retiredAt: new Date() },
+    include: {
+      productMedia: {
+        select: {
+          product: {
+            select: {
+              id: true,
+              slug: true,
+              translations: {
+                where: { locale: "en" },
+                select: { title: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  await writeAdminAudit({
+    actorAdminId,
+    action: "MEDIA_RETIRED",
+    entityType: "MediaAsset",
+    entityId: mediaAssetId,
+  });
+  return serializeMediaAsset(updated);
 }
