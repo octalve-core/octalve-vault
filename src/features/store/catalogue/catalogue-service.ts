@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import type { CurrencyCode, Locale } from "@/domain/constants";
 import { prisma } from "@/lib/prisma";
+import { resolvePublicProductMedia } from "@/server/media/public-media";
 import {
   buildPublicProductOrderBy,
   buildPublicProductWhere,
@@ -15,6 +16,17 @@ const publicProductInclude = {
   translations: true,
   prices: { where: { isActive: true } },
   assets: { where: { status: "PUBLISHED" }, select: { id: true }, take: 1 },
+  primaryMedia: {
+    include: {
+      mediaAsset: { select: { providerFilePath: true, status: true } },
+    },
+  },
+  media: {
+    orderBy: [{ position: "asc" as const }, { id: "asc" as const }],
+    include: {
+      mediaAsset: { select: { providerFilePath: true, status: true } },
+    },
+  },
 } satisfies Prisma.ProductInclude;
 
 type PublicProductRow = Prisma.ProductGetPayload<{
@@ -48,11 +60,33 @@ function toPublicProduct(product: PublicProductRow, locale: Locale): PublicProdu
     }
   }
 
+  const media = resolvePublicProductMedia({
+    title: translation.title,
+    legacyImagePath: product.imagePath,
+    primary: product.primaryMedia
+      ? {
+          id: product.primaryMedia.id,
+          altText: product.primaryMedia.altText,
+          position: product.primaryMedia.position,
+          mediaAsset: product.primaryMedia.mediaAsset,
+        }
+      : null,
+    gallery: product.media.map((item) => ({
+      id: item.id,
+      altText: item.altText,
+      position: item.position,
+      mediaAsset: item.mediaAsset,
+    })),
+  });
+
   return {
     id: product.id,
     slug: product.slug,
     category: product.category,
-    imagePath: product.imagePath,
+    imagePath: media.imagePath,
+    cardImagePath: media.cardImagePath,
+    imageAlt: media.imageAlt,
+    gallery: media.gallery,
     featured: product.featured,
     status: product.status,
     purchasable: product.status === "ACTIVE" && product.assets.length > 0,
@@ -78,7 +112,6 @@ async function queryProducts(
         ? [{ id: "asc" }]
         : buildPublicProductOrderBy(input),
   });
-
   if (input.sort === "title") {
     rows.sort((left, right) => {
       const leftTitle = translationFor(left, locale)?.title ?? "";
@@ -86,7 +119,6 @@ async function queryProducts(
       return leftTitle.localeCompare(rightTitle, locale) || left.id.localeCompare(right.id);
     });
   }
-
   return rows;
 }
 
@@ -113,10 +145,7 @@ export async function getPublicProductBySlug(
   slug: string,
 ): Promise<PublicProduct | null> {
   const product = await prisma.product.findFirst({
-    where: {
-      slug,
-      ...publicCatalogueBoundaryWhere(),
-    },
+    where: { slug, ...publicCatalogueBoundaryWhere() },
     include: publicProductInclude,
   });
   if (!product) return null;

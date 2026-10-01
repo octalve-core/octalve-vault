@@ -32,9 +32,10 @@ export function ProductCard({ product, locale }: { product: PublicProduct; local
           aria-label={view.title}
         >
           <Image
-            src={view.imagePath}
-            alt={view.title}
+            src={view.cardImagePath}
+            alt={view.imageAlt}
             fill
+            unoptimized={view.cardImagePath.startsWith("https://")}
             className="object-cover transition duration-500 group-hover:scale-[1.02]"
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
           />
@@ -61,7 +62,7 @@ export function ProductCard({ product, locale }: { product: PublicProduct; local
               onClick={() => setDetailsOpen(true)}
               className="me-2 inline-flex font-medium text-[#0A84FF] transition-colors hover:text-[#0064E0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A84FF]"
             >
-              {translate(messages, "product.details")} →
+              {translate(messages, "product.details")} ΓåÆ
             </button>
             <span>{view.shortDescription}</span>
           </p>

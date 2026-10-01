@@ -1,10 +1,21 @@
 import type { CurrencyCode, ProductStatus } from "@/domain/constants";
 
+export type PublicProductMedia = {
+  id: string;
+  imagePath: string;
+  thumbnailPath: string;
+  altText: string;
+  position: number;
+};
+
 export type PublicProduct = {
   id: string;
   slug: string;
   category: string;
   imagePath: string | null;
+  cardImagePath?: string | null;
+  imageAlt?: string;
+  gallery?: PublicProductMedia[];
   featured: boolean;
   status: ProductStatus;
   purchasable: boolean;

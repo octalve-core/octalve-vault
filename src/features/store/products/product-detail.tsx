@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
@@ -7,6 +6,7 @@ import { getMessages, translate } from "@/i18n/messages";
 import { localeHref } from "@/i18n/routing";
 import type { PublicProduct } from "../catalogue/types";
 import { ProductDetailActions } from "./product-detail-actions";
+import { ProductGallery } from "./product-gallery";
 
 export function ProductDetail({ product, locale }: { product: PublicProduct; locale: Locale }) {
   const messages = getMessages(locale);
@@ -24,16 +24,11 @@ export function ProductDetail({ product, locale }: { product: PublicProduct; loc
         </Link>
 
         <div className="mt-7 grid overflow-hidden rounded-[32px] border border-slate-200 bg-white lg:grid-cols-[minmax(0,1fr)_minmax(380px,.9fr)]">
-          <div className="relative min-h-[360px] bg-slate-100 sm:min-h-[520px]">
-            <Image
-              src={product.imagePath ?? "/brand/vault-logo.png"}
-              alt={product.title}
-              fill
-              priority
-              className="object-cover"
-              sizes="(max-width:1024px) 100vw, 55vw"
-            />
-          </div>
+          <ProductGallery
+            primaryPath={product.imagePath ?? "/brand/vault-logo.png"}
+            primaryAlt={product.imageAlt ?? product.title}
+            gallery={product.gallery ?? []}
+          />
 
           <div className="p-6 sm:p-8 lg:p-10">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#0064E0]">

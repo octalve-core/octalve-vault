@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { Check, Plus, X } from "lucide-react";
 
 import type { Locale } from "@/domain/constants";
 import { getMessages, translate } from "@/i18n/messages";
 import type { ProductViewModel } from "./product-view-model";
+import { ProductGallery } from "./product-gallery";
 
 export function ProductDetailModal({
   product,
@@ -99,15 +99,12 @@ export function ProductDetailModal({
         className="relative z-10 w-full max-w-3xl overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl"
       >
         <div className="grid max-h-[85vh] overflow-y-auto lg:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="relative min-h-[240px] bg-slate-100 lg:min-h-full">
-            <Image
-              src={product.imagePath}
-              alt={product.title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 320px"
-            />
-          </div>
+          <ProductGallery
+            primaryPath={product.imagePath}
+            primaryAlt={product.imageAlt}
+            gallery={product.gallery}
+            compact
+          />
 
           <div className="p-6 sm:p-8">
             <div className="flex items-start justify-between gap-4">
