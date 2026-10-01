@@ -26,6 +26,15 @@ enum StorageProvider {
   CLOUDFLARE_R2
 }
 
+enum MediaProvider {
+  IMAGEKIT
+}
+
+enum MediaAssetStatus {
+  READY
+  RETIRED
+}
+
 enum PaymentProvider {
   PAYSTACK
   FLUTTERWAVE
@@ -136,6 +145,7 @@ model Product {
   slug          String              @unique
   category      String
   imagePath     String?
+  primaryMediaId String?             @unique
   featured      Boolean             @default(false)
   status        ProductStatus       @default(DRAFT)
   defaultLocale String              @default("en")
@@ -147,6 +157,8 @@ model Product {
   assets         ProductAsset[]
   orderItems     OrderItem[]
   couponProducts CouponProduct[]
+  media          ProductMedia[] @relation("ProductMediaItems")
+  primaryMedia   ProductMedia?  @relation("ProductPrimaryMedia", fields: [primaryMediaId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([category])
@@ -183,6 +195,47 @@ model ProductPrice {
 
   @@unique([productId, currency])
   @@index([currency, isActive])
+}
+
+model MediaAsset {
+  id               String           @id @default(cuid())
+  provider         MediaProvider    @default(IMAGEKIT)
+  providerAssetId  String           @unique
+  providerFilePath String
+  originalFilename String
+  mimeType         String
+  width            Int
+  height           Int
+  sizeBytes        BigInt
+  status           MediaAssetStatus @default(READY)
+  createdByAdminId String?
+  retiredAt        DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  createdByAdmin AdminUser?     @relation("MediaCreatedBy", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  productMedia   ProductMedia[]
+
+  @@index([status, createdAt])
+  @@index([provider, providerFilePath])
+}
+
+model ProductMedia {
+  id           String   @id @default(cuid())
+  productId    String
+  mediaAssetId String
+  altText      String?
+  position     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product           Product    @relation("ProductMediaItems", fields: [productId], references: [id], onDelete: Cascade)
+  mediaAsset        MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+  primaryForProduct Product?   @relation("ProductPrimaryMedia")
+
+  @@unique([productId, mediaAssetId])
+  @@index([productId, position])
+  @@index([mediaAssetId])
 }
 
 model ProductAsset {
@@ -525,6 +578,7 @@ model AdminUser {
   assetsCreated      ProductAsset[] @relation("AssetCreatedBy")
   couponsCreated     Coupon[]       @relation("CouponCreatedBy")
   affiliatesCreated  Affiliate[]    @relation("AffiliateCreatedBy")
+  mediaCreated       MediaAsset[]   @relation("MediaCreatedBy")
 
   @@index([role, active])
 }

@@ -39,6 +39,7 @@ const secretPatterns = [
   [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/, "private key"],
   [/\bsk_live_[A-Za-z0-9_-]{12,}\b/, "live Paystack-like secret"],
   [/\bFLWSECK-[A-Za-z0-9_-]{12,}\b/, "live Flutterwave secret"],
+  [/\bprivate_[A-Za-z0-9_-]{12,}\b/, "ImageKit private API key"],
   [/\bpostgres(?:ql)?:\/\/[^\s:@]+:[^\s@]+@[^\s]+/i, "database credential URL"],
 ];
 for (const file of files) {
