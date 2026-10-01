@@ -1,5 +1,6 @@
 "use client";
 import { adminNotice } from "@/features/admin/shared/admin-notification-provider";
+import { MediaPicker } from "@/features/admin/media/media-picker";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ export function ProductCreatePageForm({ categories }: { categories: string[] }) 
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [primaryMediaAssetId, setPrimaryMediaAssetId] = useState<string | null>(null);
 
   const categoryOptions = useMemo(
     () => filterProductCategories(categories, category),
@@ -56,6 +58,7 @@ export function ProductCreatePageForm({ categories }: { categories: string[] }) 
       title: String(formData.get("title") || "").trim(),
       slug: String(formData.get("slug") || "").trim(),
       category: normalizedCategory,
+      primaryMediaAssetId,
     };
 
     try {
@@ -199,6 +202,11 @@ export function ProductCreatePageForm({ categories }: { categories: string[] }) 
             </div>
           ) : null}
         </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-slate-700">Primary product image <span className="font-normal text-slate-400">(optional)</span></p>
+          <MediaPicker selectedMediaAssetId={primaryMediaAssetId} onSelect={setPrimaryMediaAssetId} />
+        </div>
       </div>
 
       {error ? (
@@ -212,7 +220,7 @@ export function ProductCreatePageForm({ categories }: { categories: string[] }) 
           disabled={busy || !title.trim() || !slug || !normalizeProductCategory(category)}
           className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#0064E0] px-6 text-sm font-medium text-white transition hover:bg-[#0057C2] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {busy ? "Creating…" : "Create product"}
+          {busy ? "CreatingΓÇª" : "Create product"}
         </button>
         <Link
           href="/admin/products"

@@ -1,5 +1,6 @@
 "use client";
 import { adminNotice } from "@/features/admin/shared/admin-notification-provider";
+import { ProductMediaPanel, type ProductMediaItem } from "@/features/admin/products/product-media-panel";
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -21,12 +22,13 @@ type ProductEditorProps = {
     prices: Price[];
     assets: Asset[];
   };
+  productMedia: ProductMediaItem[];
   canEditProduct: boolean;
   canEditPrice: boolean;
   canPublish: boolean;
 };
 
-export function ProductEditor({ product, canEditProduct, canEditPrice, canPublish }: ProductEditorProps) {
+export function ProductEditor({ product, productMedia, canEditProduct, canEditPrice, canPublish }: ProductEditorProps) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -325,10 +327,11 @@ export function ProductEditor({ product, canEditProduct, canEditPrice, canPublis
           })}</div>
         </div>
 
+        <ProductMediaPanel productId={product.id} initialMedia={productMedia} canEdit={canEditProduct} />
         <div className="rounded-[28px] border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-medium text-slate-950">Private product files</h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">ZIP files upload directly from your browser to the private R2 bucket. Octalve only issues a short-lived upload authorization.</p>
-          {canEditProduct ? <label className="mt-5 block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm font-medium text-slate-600"><input type="file" accept=".zip,application/zip" className="sr-only" disabled={uploading} onChange={(event) => void upload(event.target.files?.[0] ?? null)} />{uploading ? "Uploading and verifying…" : "Choose ZIP file"}</label> : null}
+          {canEditProduct ? <label className="mt-5 block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm font-medium text-slate-600"><input type="file" accept=".zip,application/zip" className="sr-only" disabled={uploading} onChange={(event) => void upload(event.target.files?.[0] ?? null)} />{uploading ? "Uploading and verifyingΓÇª" : "Choose ZIP file"}</label> : null}
           <div className="mt-5 space-y-3">{product.assets.map((asset) => <div key={asset.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="font-medium text-slate-900">Version {asset.version}</p><p className="mt-1 truncate text-xs text-slate-400">{asset.originalFilename}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">{asset.status}</span></div><p className="mt-3 text-xs text-slate-500">{Math.max(1, Math.round(Number(asset.sizeBytes) / 1024 / 1024))} MB</p>{asset.status === "READY" && canPublish ? <button type="button" onClick={() => void publish(asset.id)} className="mt-3 text-sm font-medium text-[#0064E0]">Publish version</button> : null}</div>)}</div>
         </div>
         {message ? <p className="rounded-2xl bg-blue-50 p-4 text-sm font-medium text-blue-800">{message}</p> : null}

@@ -27,9 +27,15 @@ export async function POST(request: Request) {
     const auth = await requireAdminPermission(request, "product.write");
     const body = (await request.json()) as Record<string, unknown>;
     if (typeof body.slug !== "string" || typeof body.title !== "string" || typeof body.category !== "string") throw new Error("Slug, title and category are required.");
+    if (!(body.primaryMediaAssetId === undefined || body.primaryMediaAssetId === null || typeof body.primaryMediaAssetId === "string")) throw new Error("Primary media asset ID must be a string.");
 
     try {
-      const product = await createAdminProduct(auth.user.id, { slug: body.slug, title: body.title, category: body.category });
+      const product = await createAdminProduct(auth.user.id, {
+        slug: body.slug,
+        title: body.title,
+        category: body.category,
+        primaryMediaAssetId: typeof body.primaryMediaAssetId === "string" ? body.primaryMediaAssetId : undefined,
+      });
       return NextResponse.json({ product }, { status: 201 });
     } catch (error) {
       const mappedProductError = mapProductAdminError(error);

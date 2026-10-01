@@ -133,19 +133,52 @@ export async function getAdminProduct(id: string) {
   return prisma.product.findUnique({ where: { id }, include: { translations: true, prices: true, assets: { orderBy: { version: "desc" } } } });
 }
 
-export async function createAdminProduct(actorAdminId: string, input: { slug: string; title: string; category: string }) {
+export async function createAdminProduct(
+  actorAdminId: string,
+  input: { slug: string; title: string; category: string; primaryMediaAssetId?: string },
+) {
   const id = `vp_${generateOpaqueToken(16).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)}`;
-  const product = await prisma.product.create({
-    data: {
-      id,
-      slug: slug(input.slug),
-      category: text(input.category, "Category", 80),
-      status: "DRAFT",
-      translations: { create: { locale: "en", title: text(input.title, "Title"), shortDescription: text(input.title, "Short description") } },
-    },
-    include: { translations: true, prices: true, assets: true },
+  const product = await prisma.$transaction(async (tx) => {
+    const mediaAsset = input.primaryMediaAssetId
+      ? await tx.mediaAsset.findUnique({
+          where: { id: input.primaryMediaAssetId },
+          select: { id: true, status: true },
+        })
+      : null;
+    if (input.primaryMediaAssetId && (!mediaAsset || mediaAsset.status !== "READY")) {
+      throw Object.assign(new Error("Selected product image is not available."), { code: "PRODUCT_MEDIA_INVALID" });
+    }
+    const created = await tx.product.create({
+      data: {
+        id,
+        slug: slug(input.slug),
+        category: text(input.category, "Category", 80),
+        status: "DRAFT",
+        translations: {
+          create: {
+            locale: "en",
+            title: text(input.title, "Title"),
+            shortDescription: text(input.title, "Short description"),
+          },
+        },
+      },
+      include: { translations: true, prices: true, assets: true },
+    });
+    if (mediaAsset) {
+      const assignment = await tx.productMedia.create({
+        data: { productId: id, mediaAssetId: mediaAsset.id, position: 0 },
+      });
+      await tx.product.update({ where: { id }, data: { primaryMediaId: assignment.id } });
+    }
+    return created;
   });
-  await writeAdminAudit({ actorAdminId, action: "PRODUCT_CREATED", entityType: "Product", entityId: product.id, metadata: { slug: product.slug } });
+  await writeAdminAudit({
+    actorAdminId,
+    action: "PRODUCT_CREATED",
+    entityType: "Product",
+    entityId: product.id,
+    metadata: { slug: product.slug, primaryMediaAssetId: input.primaryMediaAssetId ?? null },
+  });
   return product;
 }
 

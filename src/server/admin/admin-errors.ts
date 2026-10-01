@@ -7,6 +7,11 @@ export type ProductAdminError = {
         error: string;
       }
     | {
+        code: "PRODUCT_MEDIA_INVALID";
+        field: "primaryMediaAssetId";
+        error: string;
+      }
+    | {
         code: "PRODUCT_CREATE_FAILED";
         error: string;
       };
@@ -22,6 +27,22 @@ export function mapProductAdminError(error: unknown): ProductAdminError {
         code: "PRODUCT_SLUG_INVALID",
         field: "slug",
         error: "Use lowercase letters, numbers and hyphens only.",
+      },
+    };
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "PRODUCT_MEDIA_INVALID"
+  ) {
+    return {
+      status: 400,
+      body: {
+        code: "PRODUCT_MEDIA_INVALID",
+        field: "primaryMediaAssetId",
+        error: "Choose an available READY image or create the product without media.",
       },
     };
   }

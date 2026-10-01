@@ -191,3 +191,234 @@ export async function retireMediaAsset(
   });
   return serializeMediaAsset(updated);
 }
+
+export type AdminProductMediaDto = {
+  id: string;
+  mediaAssetId: string;
+  altText: string | null;
+  position: number;
+  isPrimary: boolean;
+  originalFilename: string;
+  publicUrl: string;
+  thumbnailUrl: string;
+  width: number;
+  height: number;
+};
+
+export async function getAdminProductMedia(productId: string): Promise<AdminProductMediaDto[]> {
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: {
+      primaryMediaId: true,
+      media: {
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        include: { mediaAsset: true },
+      },
+    },
+  });
+  if (!product) return [];
+  return product.media.map((item) => ({
+    id: item.id,
+    mediaAssetId: item.mediaAssetId,
+    altText: item.altText,
+    position: item.position,
+    isPrimary: item.id === product.primaryMediaId,
+    originalFilename: item.mediaAsset.originalFilename,
+    publicUrl: imageKitOriginalUrl(item.mediaAsset.providerFilePath),
+    thumbnailUrl: imageKitTransformedUrl(item.mediaAsset.providerFilePath, "thumbnail"),
+    width: item.mediaAsset.width,
+    height: item.mediaAsset.height,
+  }));
+}
+
+export async function attachProductMedia(
+  actorAdminId: string,
+  productId: string,
+  mediaAssetId: string,
+) {
+  let createdId = "";
+  try {
+    await prisma.$transaction(async (tx) => {
+      const [product, asset, existing, last] = await Promise.all([
+        tx.product.findUnique({
+          where: { id: productId },
+          select: { id: true, primaryMediaId: true },
+        }),
+        tx.mediaAsset.findUnique({ where: { id: mediaAssetId } }),
+        tx.productMedia.findUnique({
+          where: { productId_mediaAssetId: { productId, mediaAssetId } },
+        }),
+        tx.productMedia.findFirst({
+          where: { productId },
+          orderBy: [{ position: "desc" }, { id: "desc" }],
+          select: { position: true },
+        }),
+      ]);
+      if (!product) throw Object.assign(new Error("Product not found."), { status: 404 });
+      if (!asset || asset.status !== "READY") {
+        throw Object.assign(new Error("Only READY media can be added to a product."), { status: 409 });
+      }
+      if (existing) {
+        throw Object.assign(new Error("Image is already assigned to this product."), { status: 409 });
+      }
+
+      const created = await tx.productMedia.create({
+        data: {
+          productId,
+          mediaAssetId,
+          position: (last?.position ?? -1) + 1,
+        },
+      });
+      createdId = created.id;
+      if (!product.primaryMediaId) {
+        await tx.product.update({
+          where: { id: productId },
+          data: { primaryMediaId: created.id },
+        });
+      }
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw Object.assign(new Error("Image is already assigned to this product."), { status: 409 });
+    }
+    throw error;
+  }
+
+  await writeAdminAudit({
+    actorAdminId,
+    action: "PRODUCT_MEDIA_ATTACHED",
+    entityType: "ProductMedia",
+    entityId: createdId,
+    metadata: { productId, mediaAssetId },
+  });
+}
+
+async function requireProductMedia(productId: string, productMediaId: string) {
+  const item = await prisma.productMedia.findFirst({
+    where: { id: productMediaId, productId },
+    include: { mediaAsset: true },
+  });
+  if (!item) throw Object.assign(new Error("Product media not found."), { status: 404 });
+  return item;
+}
+
+export async function setPrimaryProductMedia(
+  actorAdminId: string,
+  productId: string,
+  productMediaId: string,
+) {
+  const item = await requireProductMedia(productId, productMediaId);
+  if (item.mediaAsset.status !== "READY") {
+    throw Object.assign(new Error("Retired media cannot be primary."), { status: 409 });
+  }
+  await prisma.product.update({
+    where: { id: productId },
+    data: { primaryMediaId: productMediaId },
+  });
+  await writeAdminAudit({
+    actorAdminId,
+    action: "PRODUCT_MEDIA_PRIMARY_SET",
+    entityType: "ProductMedia",
+    entityId: productMediaId,
+    metadata: { productId },
+  });
+}
+
+export async function updateProductMediaAlt(
+  actorAdminId: string,
+  productId: string,
+  productMediaId: string,
+  altText: string | null,
+) {
+  await requireProductMedia(productId, productMediaId);
+  const clean = altText?.trim() || null;
+  if (clean && clean.length > 300) {
+    throw Object.assign(new Error("Alt text must be at most 300 characters."), { status: 400 });
+  }
+  await prisma.productMedia.update({
+    where: { id: productMediaId },
+    data: { altText: clean },
+  });
+  await writeAdminAudit({
+    actorAdminId,
+    action: "PRODUCT_MEDIA_ALT_UPDATED",
+    entityType: "ProductMedia",
+    entityId: productMediaId,
+    metadata: { productId },
+  });
+}
+
+export async function reorderProductMedia(
+  actorAdminId: string,
+  productId: string,
+  orderedIds: string[],
+) {
+  if (orderedIds.length !== new Set(orderedIds).size) {
+    throw Object.assign(new Error("Gallery order contains duplicate media identifiers."), { status: 400 });
+  }
+  const current = await prisma.productMedia.findMany({
+    where: { productId },
+    select: { id: true },
+  });
+  const currentIds = current.map((item) => item.id).sort();
+  const requested = [...orderedIds].sort();
+  if (
+    currentIds.length !== requested.length ||
+    currentIds.some((id, index) => id !== requested[index])
+  ) {
+    throw Object.assign(
+      new Error("Gallery order must contain exactly this product's media."),
+      { status: 409 },
+    );
+  }
+  if (orderedIds.length > 0) {
+    await prisma.$transaction(
+      orderedIds.map((id, position) =>
+        prisma.productMedia.update({ where: { id }, data: { position } }),
+      ),
+    );
+  }
+  await writeAdminAudit({
+    actorAdminId,
+    action: "PRODUCT_MEDIA_REORDERED",
+    entityType: "Product",
+    entityId: productId,
+    metadata: { count: orderedIds.length },
+  });
+}
+
+export async function detachProductMedia(
+  actorAdminId: string,
+  productId: string,
+  productMediaId: string,
+) {
+  await requireProductMedia(productId, productMediaId);
+  await prisma.$transaction(async (tx) => {
+    const product = await tx.product.findUnique({
+      where: { id: productId },
+      select: { primaryMediaId: true },
+    });
+    if (!product) throw Object.assign(new Error("Product not found."), { status: 404 });
+
+    await tx.productMedia.delete({ where: { id: productMediaId } });
+
+    if (product.primaryMediaId === productMediaId) {
+      const next = await tx.productMedia.findFirst({
+        where: { productId },
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        select: { id: true },
+      });
+      await tx.product.update({
+        where: { id: productId },
+        data: { primaryMediaId: next?.id ?? null },
+      });
+    }
+  });
+  await writeAdminAudit({
+    actorAdminId,
+    action: "PRODUCT_MEDIA_DETACHED",
+    entityType: "ProductMedia",
+    entityId: productMediaId,
+    metadata: { productId },
+  });
+}
