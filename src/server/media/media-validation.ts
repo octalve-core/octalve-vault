@@ -60,8 +60,9 @@ export function validateProviderImage(input: {
   if (!input.filePath.startsWith("/octalve-vault/products/")) {
     throw new Error("Provider asset is outside the approved Vault media folder.");
   }
-  const expectedMime = MIME_BY_EXTENSION[extensionOf(input.filePath)];
-  if (!expectedMime || input.mime !== expectedMime) throw new Error("Provider image type is not allowed.");
+  if (!Object.values(MIME_BY_EXTENSION).includes(input.mime)) {
+    throw new Error("Provider image type is not allowed.");
+  }
   if (!Number.isSafeInteger(input.size) || input.size <= 0 || input.size > MAX_MEDIA_BYTES) {
     throw new Error("Provider image exceeds the Vault size limit.");
   }
@@ -76,5 +77,5 @@ export function validateProviderImage(input: {
   ) {
     throw new Error("Provider image dimensions exceed the Vault safety limit.");
   }
-  return expectedMime;
+  return input.mime;
 }

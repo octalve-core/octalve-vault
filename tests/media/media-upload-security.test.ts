@@ -30,6 +30,24 @@ test("provider validation rejects wrong folder private unpublished and decompres
     isPublished: true,
   };
   assert.equal(validateProviderImage(good), "image/png");
+  for (const mime of [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/avif",
+  ]) {
+    assert.equal(
+      validateProviderImage({
+        ...good,
+        mime,
+        filePath: "/octalve-vault/products/opaque-provider-name",
+      }),
+      mime,
+    );
+  }
+  assert.throws(() =>
+    validateProviderImage({ ...good, mime: "image/svg+xml" }),
+  );
   assert.throws(() => validateProviderImage({ ...good, filePath: "/other/a.png" }));
   assert.throws(() => validateProviderImage({ ...good, isPrivateFile: true }));
   assert.throws(() => validateProviderImage({ ...good, isPublished: false }));

@@ -126,7 +126,7 @@ async function readPrefix(response: Response, maxBytes: number): Promise<Uint8Ar
 }
 
 export async function fetchImageSignatureFromImageKit(filePath: string): Promise<AllowedImageMime | null> {
-  const response = await fetch(imageKitOriginalUrl(filePath), {
+  const response = await fetch(`${imageKitOriginalUrl(filePath)}?tr=orig-true`, {
     headers: { range: "bytes=0-63" },
     cache: "no-store",
     signal: AbortSignal.timeout(8_000),
