@@ -8,6 +8,14 @@ export type PublicProductMedia = {
   position: number;
 };
 
+export type PublicProductPrice = {
+  regularAmountMinor: number;
+  saleAmountMinor: number | null;
+  effectiveAmountMinor: number;
+  discountPercent: number | null;
+  isOnSale: boolean;
+};
+
 export type PublicProduct = {
   id: string;
   slug: string;
@@ -25,4 +33,5 @@ export type PublicProduct = {
   businessBenefits: string[];
   productivityBenefits: string[];
   prices: Partial<Record<CurrencyCode, number>>;
+  priceDetails?: Partial<Record<CurrencyCode, PublicProductPrice>>;
 };

@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 
-import type { CurrencyCode, Locale } from "@/domain/constants";
+import type { Locale } from "@/domain/constants";
 import { prisma } from "@/lib/prisma";
 import { resolvePublicProductMedia } from "@/server/media/public-media";
 import {
@@ -10,6 +10,7 @@ import {
   publicCatalogueBoundaryWhere,
   type PublicCatalogueIndexInput,
 } from "./catalogue-index";
+import { buildPublicPriceMaps } from "./public-product-price";
 import type { PublicProduct } from "./types";
 
 const publicProductInclude = {
@@ -48,17 +49,7 @@ function toPublicProduct(product: PublicProductRow, locale: Locale): PublicProdu
   const translation = translationFor(product, locale);
   if (!translation) throw new Error(`Product ${product.id} has no usable translation.`);
 
-  const prices: Partial<Record<CurrencyCode, number>> = {};
-  for (const price of product.prices) {
-    if (
-      price.currency === "NGN" ||
-      price.currency === "USD" ||
-      price.currency === "GBP" ||
-      price.currency === "EUR"
-    ) {
-      prices[price.currency] = price.amountMinor;
-    }
-  }
+  const { prices, priceDetails } = buildPublicPriceMaps(product.prices);
 
   const media = resolvePublicProductMedia({
     title: translation.title,
@@ -96,6 +87,7 @@ function toPublicProduct(product: PublicProductRow, locale: Locale): PublicProdu
     businessBenefits: stringList(translation.businessBenefits),
     productivityBenefits: stringList(translation.productivityBenefits),
     prices,
+    priceDetails,
   };
 }
 
