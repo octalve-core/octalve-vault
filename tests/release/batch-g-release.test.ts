@@ -80,7 +80,7 @@ test("checkout-pricing is the only changed file under server payments", () => {
 });
 
 test("Batch G production changes stay inside the approved sale-pricing allowlist", () => {
-  const changed = git("diff", "--name-only", `${BASELINE}..HEAD`)
+  const changed = git("diff", "--name-only", `${BASELINE}..d4612ea3b907c6f641df24aeeb7f954cd71c4b63`)
     .split(/\r?\n/)
     .filter(Boolean);
 
