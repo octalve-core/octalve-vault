@@ -65,6 +65,11 @@ test("Batch G sale-pricing migration exists and stays additive", () => {
   assert.doesNotMatch(sql, /\bDROP\s+TABLE\b/i);
   assert.doesNotMatch(sql, /\bDROP\s+COLUMN\b/i);
   assert.doesNotMatch(sql, /\bRENAME\s+(?:TABLE|COLUMN)\b/i);
+  assert.doesNotMatch(
+    sql,
+    /\b(?:CHECK|CONSTRAINT)\b/i,
+    "sale price validity must remain server-authoritative",
+  );
 
   for (const protectedTable of [
     "Order",
