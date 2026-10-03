@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import type { CurrencyCode, Locale } from "../../domain/constants.ts";
 import { normalizeEmail } from "../../domain/email.ts";
+import { resolveEffectiveProductPrice } from "../../domain/product-pricing.ts";
 import {
   resolveAffiliateForCheckout,
   resolveCouponForCheckout,
@@ -85,14 +86,19 @@ export async function resolveCheckoutPricing(
       throw new Error(`Product ${productId} has no usable translation.`);
     }
 
+    const effectivePrice = resolveEffectiveProductPrice({
+      amountMinor: price.amountMinor,
+      saleAmountMinor: price.saleAmountMinor,
+    });
+
     return {
       productId: product.id,
       productAssetId: asset.id,
       productSlug: product.slug,
       productTitle: translation.title,
-      unitAmount: price.amountMinor,
+      unitAmount: effectivePrice.effectiveAmountMinor,
       quantity: 1,
-      totalAmount: price.amountMinor,
+      totalAmount: effectivePrice.effectiveAmountMinor,
       currency: input.currency,
     };
   });
