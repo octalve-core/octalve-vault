@@ -26,8 +26,20 @@ const SORT_KEYS: Array<{ value: PublicCatalogueSort; key: string }> = [
   { value: "newest", key: "shop.sortNewest" },
   { value: "oldest", key: "shop.sortOldest" },
   { value: "title", key: "shop.sortTitle" },
+  { value: "price-asc", key: "shop.sortPriceLowHigh" },
+  { value: "price-desc", key: "shop.sortPriceHighLow" },
 ];
 
+function isPriceSensitiveDiscovery(
+  availability: string | null,
+  sort: string | null,
+): boolean {
+  return (
+    availability === "on-sale" ||
+    sort === "price-asc" ||
+    sort === "price-desc"
+  );
+}
 type ShopDiscoveryChanges = {
   query?: string;
   category?: string;
@@ -61,22 +73,36 @@ function applyChanges(
   }
 
   if ("availability" in changes) {
-    if (changes.availability) next.set("availability", changes.availability);
-    else next.delete("availability");
-  }
-
-  if ("currency" in changes) {
-    if (changes.currency) next.set("currency", changes.currency);
-    else next.delete("currency");
-  }
-
-  if (next.get("availability") !== "on-sale") {
-    next.delete("currency");
+    if (changes.availability) {
+      next.set("availability", changes.availability);
+    } else {
+      next.delete("availability");
+    }
   }
 
   if ("sort" in changes) {
-    if (changes.sort && changes.sort !== "featured") next.set("sort", changes.sort);
-    else next.delete("sort");
+    if (changes.sort && changes.sort !== "featured") {
+      next.set("sort", changes.sort);
+    } else {
+      next.delete("sort");
+    }
+  }
+
+  if ("currency" in changes) {
+    if (changes.currency) {
+      next.set("currency", changes.currency);
+    } else {
+      next.delete("currency");
+    }
+  }
+
+  if (
+    !isPriceSensitiveDiscovery(
+      next.get("availability"),
+      next.get("sort"),
+    )
+  ) {
+    next.delete("currency");
   }
 
   return next;
@@ -194,16 +220,21 @@ export function ShopDiscoveryControls({
   }
 
   function changeAvailability(value: string) {
+    const availability: PublicCatalogueAvailability | undefined =
+      value === "available" ||
+      value === "coming-soon" ||
+      value === "on-sale"
+        ? value
+        : undefined;
+
     navigate({
       query: draftQueryRef.current,
-      availability:
-        value === "available" ||
-        value === "coming-soon" ||
-        value === "on-sale"
-          ? value
-          : undefined,
+      availability,
       currency:
-        value === "on-sale"
+        isPriceSensitiveDiscovery(
+          availability ?? null,
+          input.sort,
+        )
           ? currency
           : undefined,
     });
@@ -211,13 +242,24 @@ export function ShopDiscoveryControls({
 
   function changeSort(value: string) {
     const sort: PublicCatalogueSort =
-      value === "newest" || value === "oldest" || value === "title"
+      value === "newest" ||
+      value === "oldest" ||
+      value === "title" ||
+      value === "price-asc" ||
+      value === "price-desc"
         ? value
         : "featured";
 
     navigate({
       query: draftQueryRef.current,
       sort,
+      currency:
+        isPriceSensitiveDiscovery(
+          input.availability,
+          sort,
+        )
+          ? currency
+          : undefined,
     });
   }
 

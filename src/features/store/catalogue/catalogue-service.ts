@@ -12,6 +12,7 @@ import {
 } from "./catalogue-index";
 import { buildPublicPriceMaps } from "./public-product-price";
 import { filterPublicProductsOnSale } from "./public-sale-discovery";
+import { isPublicPriceSort } from "./public-price-sort";
 import type { PublicProduct } from "./types";
 
 const publicProductInclude = {
@@ -101,7 +102,9 @@ async function queryProducts(
     where,
     include: publicProductInclude,
     orderBy:
-      input.sort === "title"
+      input.sort === "title" ||
+      input.sort === "price-asc" ||
+      input.sort === "price-desc"
         ? [{ id: "asc" }]
         : buildPublicProductOrderBy(input),
   });
@@ -120,16 +123,27 @@ export async function getPublicProducts(
   input: PublicCatalogueIndexInput = parsePublicCatalogueParams(new URLSearchParams()),
 ): Promise<PublicProduct[]> {
   const products = await queryProducts(locale, input);
+
   const publicProducts = products.map((product) =>
     toPublicProduct(product, locale),
   );
 
-  return input.availability === "on-sale"
-    ? filterPublicProductsOnSale(
-        publicProducts,
+  const discoveredProducts =
+    input.availability === "on-sale"
+      ? filterPublicProductsOnSale(
+          publicProducts,
+          input.currency ?? null,
+        )
+      : publicProducts;
+
+  return input.sort === "price-asc" ||
+    input.sort === "price-desc"
+    ? isPublicPriceSort(
+        discoveredProducts,
         input.currency ?? null,
+        input.sort,
       )
-    : publicProducts;
+    : discoveredProducts;
 }
 
 export async function listPublicProductCategories(): Promise<string[]> {

@@ -8,7 +8,7 @@ export const PUBLIC_CATALOGUE_SORTS = [
   "title",
 ] as const;
 
-export type PublicCatalogueSort = (typeof PUBLIC_CATALOGUE_SORTS)[number];
+export type PublicCatalogueSort = (typeof PUBLIC_CATALOGUE_SORTS)[number] | "price-asc" | "price-desc";
 export type PublicCatalogueAvailability = "available" | "coming-soon" | "on-sale";
 
 export type PublicCatalogueIndexInput = {
