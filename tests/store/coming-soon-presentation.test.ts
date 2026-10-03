@@ -11,7 +11,7 @@ test("Coming Soon cards are explicit and cannot execute add-to-cart", () => {
   assert.match(card, /view\.status === "COMING_SOON"/);
   assert.match(card, /product\.coming/);
   assert.match(card, /if \(view\.purchaseAvailable\) cart\.add\(view\.id\)/);
-  assert.match(card, /view\.formattedPrice/);
+  assert.match(card, /<ProductPriceDisplay view=\{view\} compact/);
 });
 
 test("Coming Soon detail and modal use the lifecycle state instead of currency unavailability", () => {

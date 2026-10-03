@@ -7,6 +7,7 @@ import { getMessages, translate } from "@/i18n/messages";
 import type { PublicProduct } from "../catalogue/types";
 import { useCart } from "../cart/use-cart";
 import { useCurrency } from "../currency/use-currency";
+import { ProductPriceDisplay } from "./product-price-display";
 import { toProductViewModel } from "./product-view-model";
 
 export function ProductDetailActions({ product, locale }: { product: PublicProduct; locale: Locale }) {
@@ -20,9 +21,9 @@ export function ProductDetailActions({ product, locale }: { product: PublicProdu
   return (
     <div className="mt-8 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
       <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">{view.currency}</p>
-      <p className="mt-1 text-3xl font-medium tracking-[-0.04em] text-slate-950">
-        {view.formattedPrice ?? translate(messages, "product.unavailableCurrency")}
-      </p>
+      <div className="mt-1">
+        <ProductPriceDisplay view={view} />
+      </div>
       {comingSoon ? (
         <p className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-800">
           {translate(messages, "product.coming")}

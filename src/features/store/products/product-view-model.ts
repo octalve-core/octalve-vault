@@ -1,6 +1,10 @@
-import type { CurrencyCode, Locale, ProductStatus } from "../../../domain/constants.ts";
+import type {
+  CurrencyCode,
+  Locale,
+  ProductStatus,
+} from "../../../domain/constants.ts";
 import { formatMoney } from "../../../domain/money.ts";
-import type { PublicProduct, PublicProductMedia } from "../catalogue/types.ts";
+import type { PublicProduct } from "../catalogue/types.ts";
 
 export type ProductViewModel = {
   id: string;
@@ -14,10 +18,24 @@ export type ProductViewModel = {
   imagePath: string;
   cardImagePath: string;
   imageAlt: string;
-  gallery: readonly PublicProductMedia[];
+  gallery: NonNullable<PublicProduct["gallery"]>;
   currency: CurrencyCode;
+  locale: Locale;
+
+  regularAmountMinor: number | null;
+  saleAmountMinor: number | null;
+  effectiveAmountMinor: number | null;
+
+  formattedRegularPrice: string | null;
+  formattedEffectivePrice: string | null;
+
+  discountPercent: number | null;
+  isOnSale: boolean;
+
+  // Compatibility aliases remain effective-price aliases.
   amountMinor: number | null;
   formattedPrice: string | null;
+
   purchaseAvailable: boolean;
   businessBenefits: readonly string[];
   productivityBenefits: readonly string[];
@@ -28,10 +46,69 @@ export function toProductViewModel(
   currency: CurrencyCode,
   locale: Locale,
 ): ProductViewModel {
-  const amountMinor = product.prices[currency];
-  const priceAvailable = amountMinor !== undefined;
-  const purchaseAvailable = product.purchasable && priceAvailable;
-  const imagePath = product.imagePath ?? "/brand/vault-logo.png";
+  const imagePath =
+    product.imagePath ??
+    "/brand/vault-logo.png";
+
+  const cardImagePath =
+    product.cardImagePath ??
+    imagePath;
+
+  const imageAlt =
+    product.imageAlt ??
+    product.title;
+
+  const gallery =
+    product.gallery ??
+    [];
+
+  const detail = product.priceDetails?.[currency];
+  const compatibilityAmount = product.prices[currency];
+
+  const effectiveAmountMinor =
+    detail?.effectiveAmountMinor ??
+    compatibilityAmount ??
+    null;
+
+  const regularAmountMinor =
+    detail?.regularAmountMinor ??
+    effectiveAmountMinor;
+
+  const saleAmountMinor =
+    detail?.saleAmountMinor ??
+    null;
+
+  const discountPercent =
+    detail?.discountPercent ??
+    null;
+
+  const isOnSale =
+    detail?.isOnSale === true;
+
+  const priceAvailable =
+    effectiveAmountMinor !== null;
+
+  const purchaseAvailable =
+    product.purchasable && priceAvailable;
+
+  const formattedRegularPrice =
+    regularAmountMinor === null
+      ? null
+      : formatMoney(
+          regularAmountMinor,
+          currency,
+          locale,
+        );
+
+  const formattedEffectivePrice =
+    effectiveAmountMinor === null
+      ? null
+      : formatMoney(
+          effectiveAmountMinor,
+          currency,
+          locale,
+        );
+
   return {
     id: product.id,
     slug: product.slug,
@@ -40,16 +117,32 @@ export function toProductViewModel(
     status: product.status,
     title: product.title,
     shortDescription: product.shortDescription,
-    description: product.description ?? product.shortDescription,
+    description:
+      product.description ??
+      product.shortDescription,
     imagePath,
-    cardImagePath: product.cardImagePath ?? imagePath,
-    imageAlt: product.imageAlt ?? product.title,
-    gallery: product.gallery ?? [],
+    cardImagePath,
+    imageAlt,
+    gallery,
     currency,
-    amountMinor: amountMinor ?? null,
-    formattedPrice: priceAvailable ? formatMoney(amountMinor, currency, locale) : null,
+    locale,
+
+    regularAmountMinor,
+    saleAmountMinor,
+    effectiveAmountMinor,
+
+    formattedRegularPrice,
+    formattedEffectivePrice,
+
+    discountPercent,
+    isOnSale,
+
+    amountMinor: effectiveAmountMinor,
+    formattedPrice: formattedEffectivePrice,
+
     purchaseAvailable,
     businessBenefits: product.businessBenefits,
-    productivityBenefits: product.productivityBenefits,
+    productivityBenefits:
+      product.productivityBenefits,
   };
 }

@@ -12,6 +12,7 @@ import type { PublicProduct } from "../catalogue/types";
 import { useCart } from "../cart/use-cart";
 import { useCurrency } from "../currency/use-currency";
 import { ProductDetailModal } from "./product-detail-modal";
+import { ProductPriceDisplay } from "./product-price-display";
 import { toProductViewModel } from "./product-view-model";
 
 export function ProductCard({ product, locale }: { product: PublicProduct; locale: Locale }) {
@@ -68,9 +69,7 @@ export function ProductCard({ product, locale }: { product: PublicProduct; local
           </p>
 
           <div className="mt-6 flex items-center justify-between gap-4">
-            <p className="text-base font-medium text-slate-950">
-              {view.formattedPrice ?? translate(messages, "product.unavailableCurrency")}
-            </p>
+            <ProductPriceDisplay view={view} compact />
 
             {view.purchaseAvailable && added ? (
               <Link

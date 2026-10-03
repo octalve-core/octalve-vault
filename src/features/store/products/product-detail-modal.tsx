@@ -5,6 +5,7 @@ import { Check, Plus, X } from "lucide-react";
 
 import type { Locale } from "@/domain/constants";
 import { getMessages, translate } from "@/i18n/messages";
+import { ProductPriceDisplay } from "./product-price-display";
 import type { ProductViewModel } from "./product-view-model";
 import { ProductGallery } from "./product-gallery";
 
@@ -123,9 +124,9 @@ export function ProductDetailModal({
                     {translate(messages, "product.coming")}
                   </p>
                 ) : null}
-                <p className="mt-3 text-base font-medium text-slate-950">
-                  {product.formattedPrice ?? translate(messages, "product.unavailableCurrency")}
-                </p>
+                <div className="mt-3">
+                  <ProductPriceDisplay view={product} compact />
+                </div>
               </div>
 
               <button
