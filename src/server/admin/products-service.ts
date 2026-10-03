@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { CURRENCIES, LOCALES, PRODUCT_STATUSES, type CurrencyCode, type Locale, type ProductStatus } from "../../domain/constants";
+import { resolveEffectiveProductPrice } from "../../domain/product-pricing";
 import { generateOpaqueToken } from "../../domain/random";
 import { prisma } from "../../lib/prisma";
 import { writeAdminAudit } from "./audit";
@@ -204,15 +205,16 @@ export async function upsertProductTranslation(actorAdminId: string, id: string,
   return translation;
 }
 
-export async function upsertProductPrice(actorAdminId: string, id: string, input: { currency: string; amountMinor: number; isActive: boolean }) {
+export async function upsertProductPrice(actorAdminId: string, id: string, input: { currency: string; amountMinor: number; saleAmountMinor: number | null; isActive: boolean }) {
   if (!isSupportedCurrency(input.currency)) throw new Error("Unsupported currency.");
   if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor < 0) throw new Error("Price must be a non-negative integer in minor units.");
+  resolveEffectiveProductPrice({ amountMinor: input.amountMinor, saleAmountMinor: input.saleAmountMinor });
   const price = await prisma.productPrice.upsert({
     where: { productId_currency: { productId: id, currency: input.currency } },
-    update: { amountMinor: input.amountMinor, isActive: input.isActive },
-    create: { productId: id, currency: input.currency, amountMinor: input.amountMinor, isActive: input.isActive },
+    update: { amountMinor: input.amountMinor, saleAmountMinor: input.saleAmountMinor, isActive: input.isActive },
+    create: { productId: id, currency: input.currency, amountMinor: input.amountMinor, saleAmountMinor: input.saleAmountMinor, isActive: input.isActive },
   });
-  await writeAdminAudit({ actorAdminId, action: "PRODUCT_PRICE_UPDATED", entityType: "Product", entityId: id, metadata: { currency: input.currency, amountMinor: input.amountMinor, isActive: input.isActive } });
+  await writeAdminAudit({ actorAdminId, action: "PRODUCT_PRICE_UPDATED", entityType: "Product", entityId: id, metadata: { currency: input.currency, amountMinor: input.amountMinor, saleAmountMinor: input.saleAmountMinor, isActive: input.isActive } });
   return price;
 }
 

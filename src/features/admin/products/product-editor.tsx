@@ -9,7 +9,7 @@ const currencies = ["NGN", "USD", "GBP", "EUR"] as const;
 const locales = ["en", "fr", "ar"] as const;
 
 type Translation = { locale: string; title: string; shortDescription: string; description: string | null };
-type Price = { currency: string; amountMinor: number; isActive: boolean };
+type Price = { currency: string; amountMinor: number; saleAmountMinor: number | null; isActive: boolean };
 type Asset = { id: string; version: number; originalFilename: string; sizeBytes: string; status: string; publishedAt: string | null };
 type ProductEditorProps = {
   product: {
@@ -155,12 +155,22 @@ export function ProductEditor({ product, productMedia, canEditProduct, canEditPr
       if (!Number.isFinite(amountMajor) || amountMajor < 0) {
         throw new Error("Enter a valid price.");
       }
+      const saleAmountMajorText = String(form.get("saleAmountMajor") ?? "").trim();
+      const saleAmountMajor = saleAmountMajorText ? Number(saleAmountMajorText) : null;
+      if (
+        saleAmountMajor !== null &&
+        (!Number.isFinite(saleAmountMajor) || saleAmountMajor <= 0 || saleAmountMajor >= amountMajor)
+      ) {
+        throw new Error("Enter a sale price below the regular price.");
+      }
+      const saleAmountMinor = saleAmountMajor === null ? null : Math.round(saleAmountMajor * 100);
       await request(
         `/api/admin/products/${product.id}/prices`,
         "PUT",
         {
           currency,
           amountMinor: Math.round(amountMajor * 100),
+          saleAmountMinor,
           isActive: form.get("isActive") === "on",
         },
         {
@@ -171,7 +181,11 @@ export function ProductEditor({ product, productMedia, canEditProduct, canEditPr
         },
       );
     } catch (caught) {
-      if (caught instanceof Error && caught.message === "Enter a valid price.") {
+      if (
+        caught instanceof Error &&
+        (caught.message === "Enter a valid price." ||
+          caught.message === "Enter a sale price below the regular price.")
+      ) {
         setMessage(caught.message);
         const noticeId = adminNotice.pending({ title: "Saving price" });
         adminNotice.error(noticeId, {
@@ -323,7 +337,7 @@ export function ProductEditor({ product, productMedia, canEditProduct, canEditPr
           <h2 className="text-lg font-medium text-slate-950">Prices</h2>
           <div className="mt-4 grid gap-3">{currencies.map((currency) => {
             const price = byCurrency.get(currency);
-            return <form action={updatePrice} key={currency} className="grid grid-cols-[70px_1fr_auto] items-end gap-3 rounded-2xl bg-slate-50 p-3"><input type="hidden" name="currency" value={currency} /><p className="pb-3 text-sm font-medium">{currency}</p><label className="text-xs font-medium text-slate-500">Major units<input disabled={!canEditPrice} name="amountMajor" type="number" min="0" step="0.01" defaultValue={price ? (price.amountMinor / 100).toFixed(2) : ""} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm disabled:bg-slate-100" /></label><label className="flex items-center gap-2 pb-3 text-xs font-medium"><input disabled={!canEditPrice} type="checkbox" name="isActive" defaultChecked={price?.isActive ?? false} />Active</label>{canEditPrice ? <button className="col-span-3 justify-self-start text-sm font-medium text-[#0064E0]">Save price</button> : null}</form>;
+            return <form action={updatePrice} key={currency} className="grid grid-cols-[70px_1fr_1fr_auto] items-end gap-3 rounded-2xl bg-slate-50 p-3"><input type="hidden" name="currency" value={currency} /><p className="pb-3 text-sm font-medium">{currency}</p><label className="text-xs font-medium text-slate-500">Regular price<input disabled={!canEditPrice} name="amountMajor" type="number" min="0" step="0.01" defaultValue={price ? (price.amountMinor / 100).toFixed(2) : ""} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm disabled:bg-slate-100" /></label><label className="text-xs font-medium text-slate-500">Sale price (optional)<input disabled={!canEditPrice} name="saleAmountMajor" type="number" min="0.01" step="0.01" defaultValue={price?.saleAmountMinor != null ? (price.saleAmountMinor / 100).toFixed(2) : ""} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm disabled:bg-slate-100" /></label><label className="flex items-center gap-2 pb-3 text-xs font-medium"><input disabled={!canEditPrice} type="checkbox" name="isActive" defaultChecked={price?.isActive ?? false} />Active</label>{canEditPrice ? <button className="col-span-4 justify-self-start text-sm font-medium text-[#0064E0]">Save price</button> : null}</form>;
           })}</div>
         </div>
 
