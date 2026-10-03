@@ -11,6 +11,7 @@ import {
   type PublicCatalogueIndexInput,
 } from "./catalogue-index";
 import { buildPublicPriceMaps } from "./public-product-price";
+import { filterPublicProductsOnSale } from "./public-sale-discovery";
 import type { PublicProduct } from "./types";
 
 const publicProductInclude = {
@@ -119,7 +120,16 @@ export async function getPublicProducts(
   input: PublicCatalogueIndexInput = parsePublicCatalogueParams(new URLSearchParams()),
 ): Promise<PublicProduct[]> {
   const products = await queryProducts(locale, input);
-  return products.map((product) => toPublicProduct(product, locale));
+  const publicProducts = products.map((product) =>
+    toPublicProduct(product, locale),
+  );
+
+  return input.availability === "on-sale"
+    ? filterPublicProductsOnSale(
+        publicProducts,
+        input.currency ?? null,
+      )
+    : publicProducts;
 }
 
 export async function listPublicProductCategories(): Promise<string[]> {

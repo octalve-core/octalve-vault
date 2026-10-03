@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import type { CurrencyCode } from "@/domain/constants";
 
 export const PUBLIC_CATALOGUE_SORTS = [
   "featured",
@@ -8,12 +9,13 @@ export const PUBLIC_CATALOGUE_SORTS = [
 ] as const;
 
 export type PublicCatalogueSort = (typeof PUBLIC_CATALOGUE_SORTS)[number];
-export type PublicCatalogueAvailability = "available" | "coming-soon";
+export type PublicCatalogueAvailability = "available" | "coming-soon" | "on-sale";
 
 export type PublicCatalogueIndexInput = {
   query: string;
   category?: string;
   availability?: PublicCatalogueAvailability;
+  currency: CurrencyCode | null;
   sort: PublicCatalogueSort;
 };
 
@@ -26,11 +28,23 @@ export function parsePublicCatalogueParams(
 ): PublicCatalogueIndexInput {
   const availability = params.get("availability");
   const sort = params.get("sort");
+  const rawCurrency = params.get("currency");
+  const currency: CurrencyCode | null =
+    rawCurrency === "NGN" ||
+    rawCurrency === "USD" ||
+    rawCurrency === "GBP" ||
+    rawCurrency === "EUR"
+      ? rawCurrency
+      : null;
+
   return {
+    currency,
     query: normalizeText(params.get("q")),
     category: normalizeText(params.get("category")) || undefined,
     availability:
-      availability === "available" || availability === "coming-soon"
+      availability === "available" ||
+    availability === "coming-soon" ||
+    availability === "on-sale"
         ? availability
         : undefined,
     sort: (PUBLIC_CATALOGUE_SORTS as readonly string[]).includes(sort ?? "")

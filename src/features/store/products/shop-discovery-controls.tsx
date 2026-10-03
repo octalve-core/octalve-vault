@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import type { Locale } from "@/domain/constants";
+import type { CurrencyCode, Locale } from "@/domain/constants";
 import type {
   PublicCatalogueAvailability,
   PublicCatalogueIndexInput,
@@ -11,6 +11,7 @@ import type {
 } from "@/features/store/catalogue/catalogue-index";
 import { getMessages, translate } from "@/i18n/messages";
 import { localeHref } from "@/i18n/routing";
+import { useCurrency } from "../currency/use-currency";
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -31,6 +32,7 @@ type ShopDiscoveryChanges = {
   query?: string;
   category?: string;
   availability?: PublicCatalogueAvailability;
+  currency?: CurrencyCode;
   sort?: PublicCatalogueSort;
 };
 
@@ -63,6 +65,15 @@ function applyChanges(
     else next.delete("availability");
   }
 
+  if ("currency" in changes) {
+    if (changes.currency) next.set("currency", changes.currency);
+    else next.delete("currency");
+  }
+
+  if (next.get("availability") !== "on-sale") {
+    next.delete("currency");
+  }
+
   if ("sort" in changes) {
     if (changes.sort && changes.sort !== "featured") next.set("sort", changes.sort);
     else next.delete("sort");
@@ -88,6 +99,7 @@ export function ShopDiscoveryControls({
 }) {
   const messages = getMessages(locale);
   const router = useRouter();
+  const { currency } = useCurrency();
   const searchParams = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimerRef = useRef<number | null>(null);
@@ -152,6 +164,25 @@ export function ShopDiscoveryControls({
     [clearPendingSearch, locale, router],
   );
 
+  useEffect(() => {
+    if (
+      input.availability !== "on-sale" ||
+      input.currency === currency
+    ) {
+      return;
+    }
+
+    navigate({
+      query: draftQueryRef.current,
+      currency,
+    });
+  }, [
+    currency,
+    input.availability,
+    input.currency,
+    navigate,
+  ]);
+
   function handleSearchChange(value: string) {
     draftQueryRef.current = value;
     clearPendingSearch();
@@ -166,8 +197,14 @@ export function ShopDiscoveryControls({
     navigate({
       query: draftQueryRef.current,
       availability:
-        value === "available" || value === "coming-soon"
+        value === "available" ||
+        value === "coming-soon" ||
+        value === "on-sale"
           ? value
+          : undefined,
+      currency:
+        value === "on-sale"
+          ? currency
           : undefined,
     });
   }
@@ -240,6 +277,7 @@ export function ShopDiscoveryControls({
             <option value="">{translate(messages, "shop.allAvailability")}</option>
             <option value="available">{translate(messages, "shop.availableNow")}</option>
             <option value="coming-soon">{translate(messages, "shop.comingSoon")}</option>
+            <option value="on-sale">{translate(messages, "shop.onSale")}</option>
           </select>
         </label>
 
