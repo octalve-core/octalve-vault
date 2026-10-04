@@ -20,6 +20,8 @@ import { localeHref } from "@/i18n/routing";
 import type { PublicProduct } from "../catalogue/types";
 import { useCart } from "../cart/use-cart";
 import { useCurrency } from "../currency/use-currency";
+import { ProductPriceDisplay } from "../products/product-price-display";
+import { toProductViewModel } from "../products/product-view-model";
 
 const providerLabel: Record<PaymentProviderId, string> = {
   PAYSTACK: "Paystack",
@@ -68,6 +70,9 @@ export function CheckoutView({
         .map((id) => products.find((product) => product.id === id))
         .filter((product): product is PublicProduct => Boolean(product)),
     [cart.ids, products],
+  );
+  const displayItems = selected.map((product) =>
+    toProductViewModel(product, currency, locale),
   );
   const providers = providersByCurrency[currency] ?? [];
   const effectiveProvider =
@@ -382,7 +387,7 @@ export function CheckoutView({
           {messages["checkout.summary"]}
         </h3>
         <div className="mt-6 space-y-4">
-          {selected.map((product) => (
+          {displayItems.map((product) => (
             <div
               key={product.id}
               className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-3"
@@ -401,11 +406,9 @@ export function CheckoutView({
                   <p className="text-sm font-medium text-slate-950">{product.title}</p>
                   <p className="mt-1 text-xs text-slate-500">{product.category}</p>
                 </div>
-                <p className="shrink-0 text-sm font-semibold text-slate-950">
-                  {product.prices[currency] === undefined
-                    ? messages["checkout.unavailable"]
-                    : formatMoney(product.prices[currency]!, currency, locale)}
-                </p>
+                <div className="shrink-0 text-end">
+                  <ProductPriceDisplay view={product} compact />
+                </div>
               </div>
             </div>
           ))}

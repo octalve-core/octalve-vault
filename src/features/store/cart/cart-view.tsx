@@ -11,6 +11,7 @@ import { getMessages, translate } from "@/i18n/messages";
 import { localeHref } from "@/i18n/routing";
 import type { PublicProduct } from "../catalogue/types";
 import { useCurrency } from "../currency/use-currency";
+import { ProductPriceDisplay } from "../products/product-price-display";
 import { toProductViewModel } from "../products/product-view-model";
 import { useCart } from "./use-cart";
 
@@ -88,9 +89,7 @@ export function CartView({ products, locale }: { products: PublicProduct[]; loca
                         </div>
 
                         <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
-                          <p className="text-base font-medium text-slate-950">
-                            {item.formattedPrice ?? translate(messages, "product.unavailableCurrency")}
-                          </p>
+                          <ProductPriceDisplay view={item} compact />
                           <button
                             type="button"
                             onClick={() => remove(item.id)}
