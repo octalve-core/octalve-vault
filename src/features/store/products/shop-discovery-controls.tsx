@@ -31,8 +31,8 @@ const SORT_KEYS: Array<{ value: PublicCatalogueSort; key: string }> = [
 ];
 
 function isPriceSensitiveDiscovery(
-  availability: string | null,
-  sort: string | null,
+  availability: string | null | undefined,
+  sort: string | null | undefined,
 ): boolean {
   return (
     availability === "on-sale" ||
@@ -96,11 +96,15 @@ function applyChanges(
     }
   }
 
-  if (
-    !isPriceSensitiveDiscovery(
+  const priceSensitive =
+    isPriceSensitiveDiscovery(
       next.get("availability"),
       next.get("sort"),
-    )
+    );
+
+  if (
+    next.get("availability") !== "on-sale" &&
+    !priceSensitive
   ) {
     next.delete("currency");
   }
@@ -191,8 +195,13 @@ export function ShopDiscoveryControls({
   );
 
   useEffect(() => {
+    const priceSensitive =
+      input.availability === "on-sale" ||
+      input.sort === "price-asc" ||
+      input.sort === "price-desc";
+
     if (
-      input.availability !== "on-sale" ||
+      (input.availability !== "on-sale" && !priceSensitive) ||
       input.currency === currency
     ) {
       return;
@@ -206,6 +215,7 @@ export function ShopDiscoveryControls({
     currency,
     input.availability,
     input.currency,
+    input.sort,
     navigate,
   ]);
 

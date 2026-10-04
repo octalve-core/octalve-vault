@@ -23,7 +23,7 @@ function normalizeText(value: string | null): string {
   return (value ?? "").trim().replace(/\s+/g, " ");
 }
 
-export function parsePublicCatalogueParams(
+function parsePublicCatalogueParamsBase(
   params: URLSearchParams,
 ): PublicCatalogueIndexInput {
   const availability = params.get("availability");
@@ -109,4 +109,39 @@ export function buildPublicProductOrderBy(
     default:
       return [{ featured: "desc" }, { createdAt: "asc" }, { id: "asc" }];
   }
+}
+export function parsePublicCatalogueParams(
+  params: URLSearchParams,
+): PublicCatalogueIndexInput {
+  const parsed = parsePublicCatalogueParamsBase(params);
+
+  const requestedSort = params.get("sort");
+
+  const priceSort: PublicCatalogueSort | null =
+    requestedSort === "price-asc" ||
+    requestedSort === "price-desc"
+      ? requestedSort
+      : null;
+
+  const sort: PublicCatalogueSort =
+    priceSort ?? parsed.sort;
+
+  const requestedCurrency = params.get("currency");
+
+  const priceSortCurrency =
+    requestedCurrency === "NGN" ||
+    requestedCurrency === "USD" ||
+    requestedCurrency === "GBP" ||
+    requestedCurrency === "EUR"
+      ? requestedCurrency
+      : null;
+
+  return {
+    ...parsed,
+    sort,
+    currency:
+      priceSort === null
+        ? parsed.currency
+        : priceSortCurrency,
+  };
 }
