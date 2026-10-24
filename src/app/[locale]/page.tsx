@@ -6,6 +6,7 @@ import { VaultFaq } from "@/features/store/home/sections/faq";
 import { FeaturedProductsSection } from "@/features/store/home/sections/featured-products";
 import { VaultHero } from "@/features/store/home/sections/hero";
 import { ProductCategoriesSection } from "@/features/store/home/sections/product-categories";
+import { StoreServiceUnavailable } from "@/features/store/resilience/store-service-unavailable";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +18,25 @@ export default async function VaultHomePage({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
 
-  const products = await getPublicProducts(locale);
-  const featuredProducts = products.filter((product) => product.featured).slice(0, 6);
+  try {
+    const products = await getPublicProducts(locale);
+    const featuredProducts = products.filter((product) => product.featured).slice(0, 6);
 
-  return (
-    <>
-      <VaultHero locale={locale} />
-      <ProductCategoriesSection locale={locale} products={products} />
-      <FeaturedProductsSection locale={locale} products={featuredProducts} />
-      <VaultFaq locale={locale} />
-    </>
-  );
+    return (
+      <>
+        <VaultHero locale={locale} />
+        <ProductCategoriesSection locale={locale} products={products} />
+        <FeaturedProductsSection locale={locale} products={featuredProducts} />
+        <VaultFaq locale={locale} />
+      </>
+    );
+  } catch {
+    return (
+      <>
+        <VaultHero locale={locale} />
+        <StoreServiceUnavailable locale={locale} />
+        <VaultFaq locale={locale} />
+      </>
+    );
+  }
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { Locale } from "@/domain/constants";
+import { DEFAULT_COMMERCE_SETTINGS } from "@/domain/commerce-settings";
 import { isLocale, isRtlLocale } from "@/config/locales";
 import { getPublicProducts } from "@/features/store/catalogue/catalogue-service";
 import { CartCheckoutBar } from "@/features/store/layout/cart-checkout-bar";
@@ -11,10 +12,18 @@ import { getCommerceSettings } from "@/server/settings/commerce-settings";
 
 export const dynamic = "force-dynamic";
 
+async function publicSettings() {
+  try {
+    return await getCommerceSettings();
+  } catch {
+    return DEFAULT_COMMERCE_SETTINGS;
+  }
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  const settings = await getCommerceSettings();
+  const settings = await publicSettings();
   if (!settings.enabledLocales.includes(locale)) return {};
   return {
     alternates: {
@@ -27,17 +36,24 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function LocaleLayout({ children, params }: Readonly<{ children: React.ReactNode; params: Promise<{ locale: string }> }>) {
   const { locale: rawLocale } = await params;
   if (!isLocale(rawLocale)) notFound();
-  const settings = await getCommerceSettings();
+
+  const settings = await publicSettings();
   if (!settings.enabledLocales.includes(rawLocale)) notFound();
+
   const locale: Locale = rawLocale;
-  const products = await getPublicProducts(locale);
+  let products: Awaited<ReturnType<typeof getPublicProducts>> | null = null;
+  try {
+    products = await getPublicProducts(locale);
+  } catch {
+    // Do not let catalogue/database downtime take down the public shell.
+  }
 
   return (
     <CommercePreferencesProvider value={settings}>
       <div lang={locale} dir={isRtlLocale(locale) ? "rtl" : "ltr"} className="min-h-screen bg-[#F8FAFC] text-[#000A16]">
         <SiteHeader locale={locale} />
         <main>{children}</main>
-        <CartCheckoutBar locale={locale} products={products} />
+        {products ? <CartCheckoutBar locale={locale} products={products} /> : null}
         <SiteFooter locale={locale} />
       </div>
     </CommercePreferencesProvider>
