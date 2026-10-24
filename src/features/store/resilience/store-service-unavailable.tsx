@@ -41,7 +41,7 @@ export function StoreServiceUnavailable({ locale }: { locale: Locale }) {
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-700 sm:text-base">{copy.body}</p>
             <Link
               href={localeHref(locale, "/contact")}
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[#0064E0] px-5 text-sm font-medium text-white transition hover:bg-[#0057C2]"
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[#0064E0] px-5 text-sm font-medium text-white transition hover:bg-[#0057C2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/40 focus-visible:ring-offset-2"
             >
               {copy.support}
             </Link>
