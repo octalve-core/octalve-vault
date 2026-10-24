@@ -28,4 +28,4 @@ jobs:
           pnpm --version
 
       - name: Run authoritative verification
-        run: ./scripts/verify.sh
+        run: bash scripts/verify.sh
