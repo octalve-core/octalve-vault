@@ -1,0 +1,32 @@
+name: Verify Vault Recovery
+
+on:
+  push:
+    branches:
+      - fix/vault-production-resilience
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.7.0 --activate
+          pnpm --version
+
+      - name: Run authoritative verification
+        run: ./scripts/verify.sh
