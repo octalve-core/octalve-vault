@@ -5,6 +5,7 @@ import { CURRENCIES, type CurrencyCode } from "@/domain/constants";
 import { isLocale } from "@/config/locales";
 import { CheckoutView } from "@/features/store/checkout/checkout-view";
 import { getPublicProducts } from "@/features/store/catalogue/catalogue-service";
+import { StoreServiceUnavailable } from "@/features/store/resilience/store-service-unavailable";
 import { getMessages } from "@/i18n/messages";
 import { availablePaymentProviders } from "@/server/payments/registry";
 
@@ -22,7 +23,13 @@ export default async function CheckoutPage({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
 
-  const products = await getPublicProducts(locale);
+  let products: Awaited<ReturnType<typeof getPublicProducts>>;
+  try {
+    products = await getPublicProducts(locale);
+  } catch {
+    return <StoreServiceUnavailable locale={locale} />;
+  }
+
   const messages = getMessages(locale);
   const providersByCurrency = Object.fromEntries(
     CURRENCIES.map((currency) => [

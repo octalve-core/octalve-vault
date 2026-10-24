@@ -7,7 +7,9 @@ import {
   listPublicProductCategories,
 } from "@/features/store/catalogue/catalogue-service";
 import { parsePublicCatalogueParams } from "@/features/store/catalogue/catalogue-index";
+import type { PublicProduct } from "@/features/store/catalogue/types";
 import { ProductGrid } from "@/features/store/products/product-grid";
+import { StoreServiceUnavailable } from "@/features/store/resilience/store-service-unavailable";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Shop" };
@@ -37,15 +39,24 @@ export default async function ProductsPage({
   if (!isLocale(locale)) notFound();
 
   const input = parsePublicCatalogueParams(toUrlSearchParams(await searchParams));
-  const [products, categories] = await Promise.all([
-    getPublicProducts(locale, input),
-    listPublicProductCategories(),
-  ]);
+  let result: { products: PublicProduct[]; categories: string[] } | null = null;
+
+  try {
+    const [products, categories] = await Promise.all([
+      getPublicProducts(locale, input),
+      listPublicProductCategories(),
+    ]);
+    result = { products, categories };
+  } catch {
+    // Shop stays visible but non-commercial until authoritative catalogue data returns.
+  }
+
+  if (!result) return <StoreServiceUnavailable locale={locale} />;
 
   return (
     <ProductGrid
-      products={products}
-      categories={categories}
+      products={result.products}
+      categories={result.categories}
       input={input}
       locale={locale}
     />

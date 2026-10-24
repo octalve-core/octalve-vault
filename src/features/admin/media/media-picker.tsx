@@ -5,6 +5,17 @@ import { useCallback, useEffect, useState } from "react";
 
 import { MediaUploadControl, type MediaLibraryItem } from "./media-upload-control";
 
+function mediaLibraryUrl(q = "") {
+  const params = new URLSearchParams({
+    status: "READY",
+    usage: "all",
+    page: "1",
+    pageSize: "25",
+  });
+  if (q.trim()) params.set("q", q.trim());
+  return `/api/admin/media?${params.toString()}`;
+}
+
 export function MediaPicker({
   selectedMediaAssetId,
   onSelect,
@@ -19,14 +30,7 @@ export function MediaPicker({
   const load = useCallback(async (q = "") => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        status: "READY",
-        usage: "all",
-        page: "1",
-        pageSize: "25",
-      });
-      if (q.trim()) params.set("q", q.trim());
-      const response = await fetch(`/api/admin/media?${params.toString()}`, { cache: "no-store" });
+      const response = await fetch(mediaLibraryUrl(q), { cache: "no-store" });
       const data = (await response.json()) as { items?: MediaLibraryItem[] };
       if (response.ok && data.items) setItems(data.items);
     } finally {
@@ -34,7 +38,21 @@ export function MediaPicker({
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(mediaLibraryUrl(), { cache: "no-store", signal: controller.signal })
+      .then(async (response) => ({
+        ok: response.ok,
+        data: (await response.json()) as { items?: MediaLibraryItem[] },
+      }))
+      .then(({ ok, data }) => {
+        if (ok && data.items) setItems(data.items);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      });
+    return () => controller.abort();
+  }, []);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
