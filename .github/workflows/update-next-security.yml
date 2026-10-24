@@ -30,7 +30,7 @@ jobs:
           corepack prepare pnpm@12.7.0 --activate
 
       - name: Update patched Next.js and lockfile
-        run: pnpm up next@16.4.3 --save-exact --lockfile-only
+        run: pnpm up next@16.4.3 eslint-config-next@16.4.3 --save-exact --lockfile-only
 
       - name: Commit deterministic dependency update
         run: |
