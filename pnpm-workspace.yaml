@@ -18,3 +18,4 @@ overrides:
   "defu@": 6.1.7
   "@humanfs/node@": 0.16.8
   "deepmerge-ts@": 8.0.2
+  "source-map-js@": 1.2.2
