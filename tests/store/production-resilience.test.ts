@@ -48,3 +48,11 @@ test("admin login distinguishes service outage from invalid credentials without 
   assert.match(route, /Administration is temporarily unavailable/);
   assert.doesNotMatch(route, /DATABASE_URL|PrismaClient|P1001/);
 });
+
+test("product detail preserves real not-found semantics outside the outage catch", () => {
+  const page = read("src/app/[locale]/products/[slug]/page.tsx");
+  const catchIndex = page.indexOf("catch {");
+  const notFoundIndex = page.lastIndexOf("if (!product) notFound()");
+  assert.ok(catchIndex >= 0);
+  assert.ok(notFoundIndex > catchIndex, "Missing products must still reach notFound after DB errors are handled.");
+});
