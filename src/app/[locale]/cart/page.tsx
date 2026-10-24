@@ -13,10 +13,13 @@ export default async function CartPage({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
 
+  let products: Awaited<ReturnType<typeof getPublicProducts>> | null = null;
   try {
-    const products = await getPublicProducts(locale);
-    return <CartView products={products} locale={locale} />;
+    products = await getPublicProducts(locale);
   } catch {
-    return <StoreServiceUnavailable locale={locale} />;
+    // Cart stays fail-closed until authoritative catalogue data is available.
   }
+
+  if (!products) return <StoreServiceUnavailable locale={locale} />;
+  return <CartView products={products} locale={locale} />;
 }
