@@ -18,19 +18,14 @@ export default async function VaultHomePage({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
 
+  let products: Awaited<ReturnType<typeof getPublicProducts>> | null = null;
   try {
-    const products = await getPublicProducts(locale);
-    const featuredProducts = products.filter((product) => product.featured).slice(0, 6);
-
-    return (
-      <>
-        <VaultHero locale={locale} />
-        <ProductCategoriesSection locale={locale} products={products} />
-        <FeaturedProductsSection locale={locale} products={featuredProducts} />
-        <VaultFaq locale={locale} />
-      </>
-    );
+    products = await getPublicProducts(locale);
   } catch {
+    // Public shell remains available while authoritative catalogue data is unavailable.
+  }
+
+  if (!products) {
     return (
       <>
         <VaultHero locale={locale} />
@@ -39,4 +34,15 @@ export default async function VaultHomePage({
       </>
     );
   }
+
+  const featuredProducts = products.filter((product) => product.featured).slice(0, 6);
+
+  return (
+    <>
+      <VaultHero locale={locale} />
+      <ProductCategoriesSection locale={locale} products={products} />
+      <FeaturedProductsSection locale={locale} products={featuredProducts} />
+      <VaultFaq locale={locale} />
+    </>
+  );
 }
