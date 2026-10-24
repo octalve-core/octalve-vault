@@ -37,7 +37,7 @@ jobs:
 
       - name: Start application with unavailable PostgreSQL
         run: |
-          pnpm start -- -p 3000 > /tmp/vault-next.log 2>&1 &
+          pnpm exec next start -p 3000 > /tmp/vault-next.log 2>&1 &
           echo $! > /tmp/vault-next.pid
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:3000/api/health >/tmp/health.json; then
