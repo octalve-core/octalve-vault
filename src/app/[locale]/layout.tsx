@@ -20,6 +20,15 @@ async function publicSettings() {
   }
 }
 
+async function publicProducts(locale: Locale) {
+  try {
+    const products = await getPublicProducts(locale);
+    return products;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
@@ -41,12 +50,7 @@ export default async function LocaleLayout({ children, params }: Readonly<{ chil
   if (!settings.enabledLocales.includes(rawLocale)) notFound();
 
   const locale: Locale = rawLocale;
-  let products: Awaited<ReturnType<typeof getPublicProducts>> | null = null;
-  try {
-    products = await getPublicProducts(locale);
-  } catch {
-    // Do not let catalogue/database downtime take down the public shell.
-  }
+  const products = await publicProducts(locale);
 
   return (
     <CommercePreferencesProvider value={settings}>
