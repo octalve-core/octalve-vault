@@ -12,6 +12,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://vault_ci:vault_ci@127.0.0.1:5432/vault_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
